@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Bookmark } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Grant } from "@/types/grant";
@@ -38,8 +39,8 @@ function ReqBox({
 export function GrantCard({ grant }: { grant: Grant }) {
   const pct = Math.round((grant.matchScore / grant.matchTotal) * 100);
   return (
-    <a
-      href="#"
+    <Link
+      href={`/gov-grant/${grant.id}`}
       className="group block w-full rounded-[35px] border-[1.5px] border-line bg-white p-[43px] transition-shadow hover:shadow-md"
     >
       {/* header */}
@@ -116,6 +117,6 @@ export function GrantCard({ grant }: { grant: Grant }) {
           </span>
         ))}
       </div>
-    </a>
+    </Link>
   );
 }

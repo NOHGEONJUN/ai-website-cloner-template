@@ -13,6 +13,46 @@ export interface NavSection {
   links: NavLink[];
 }
 
+export interface DetailSection {
+  n: number;
+  title: string;
+  blocks: string[];
+}
+
+export interface LabeledRow {
+  label: string;
+  value: string;
+}
+
+export interface GrantDetail {
+  id: string;
+  dday: string;
+  supportType: string;
+  noticeName: string;
+  title: string;
+  ministry: string;
+  agency: string;
+  /** words highlighted yellow across the page, like the original's match keywords */
+  keywords: string[];
+  coreKeywords: string[];
+  scale: string;
+  amount: string;
+  orgTypes: string[];
+  registeredAt: string;
+  deadline: string;
+  periodNote: string;
+  summary: string;
+  matchScore: number;
+  matchTotal: number;
+  reqOrgTypes: string;
+  reqRegions: string;
+  reqRevenue: string;
+  reqLab: string;
+  requirements: LabeledRow[];
+  restrictions: string[];
+  overview: DetailSection[];
+}
+
 export interface Grant {
   id: string;
   isNew: boolean;
