@@ -106,6 +106,10 @@ export interface Profile {
   years: string;
   region: string | null;
   lab: "예" | "아니오" | null;
+  /** 희망 과제 주제 (onboarding funnel, reconstruction) */
+  topics?: string[];
+  /** 매일 아침 신규 과제 알림 (onboarding funnel, reconstruction) */
+  alarm?: boolean;
 }
 
 export const EMPTY_PROFILE: Profile = { org: null, revenue: "", years: "", region: null, lab: null };
