@@ -7,7 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- 과제 검색 page (`/gov-grant/search`) cloned from the live site: search textarea, 요건/필터 panel (기관 유형·매출액·사업연수·소재지·부설연구소·과제 유형), ongoing-only toggle, segmented sort, D-day cards with red unknown-match state — all operating on the mock dataset
+- 관심 공고 page (`/gov-grant/saved`, layout reconstructed — live page is login-only) with localStorage-backed bookmark toggling on every grant card
+- Extracted global footer (link row + mock company block) on all pages
+- Working sort + circular pagination on the recommend list; mock pool expanded to 40 grants
+- Component spec files and search-page HTML/CSS extraction artifacts under `docs/research/`
+
 ### Changed
+- Recommend list moved to `/gov-grant/recommend` to match the original URL structure (`/` redirects)
+- TopBar tabs are real links with route-based active state; gray/blue/red design tokens corrected to live computed values
 - Raised the project Node.js baseline to 24 across local development, CI, Docker, and contributor-facing documentation
 
 ## [0.3.1] - 2026-03-29

@@ -71,4 +71,10 @@ export interface Grant {
   revenue: string;
   lab: string;
   tags: string[];
+  /** days until deadline relative to the clone's reference date; null = 별도 공지/상시 */
+  dday?: number | null;
+  /** 과제 유형 filter on the search page */
+  supportType?: "연구개발" | "사업화";
+  /** search page: requirement match not computable (live shows red "?/4" state) */
+  matchUnknown?: boolean;
 }

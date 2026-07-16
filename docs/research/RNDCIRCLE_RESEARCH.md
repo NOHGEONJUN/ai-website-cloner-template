@@ -1,5 +1,15 @@
 # RnDcircle `app.rndcircle.io/gov-grant/recommend` — Clone Research
 
+> **2026-07-16 update:** second extraction pass (logged-out, headless) covered
+> `/gov-grant/search`, the global footer, pagination, and the full gray/blue/red palette.
+> See `docs/research/components/*.spec.md` and `docs/research/search-page-html.json`.
+> Confirmed URLs: 맞춤 추천 `/gov-grant/recommend` · 과제 검색 `/gov-grant/search` (public) ·
+> 관심 공고 `/gov-grant/saved` (login-only → clone is a reconstruction).
+> Verified palette: black1 #06191D · gray1 #424242 · gray2 #666666 · gray3 #A1A1A1 ·
+> gray4 #D2D2D2 · gray5 #ECECEC · gray6 #FAFAFA · blue1 #000AFF · blue2 #323AFF ·
+> blue3 #6F75FF (hover) · blue5 #C7CAFF · blue6 #E0E2FF · green1 #11C918 · red1 #FF6868
+> (red3 = red1/50, red6 = red1/10). Base tracking ≈ -0.025em (e.g. -0.4px @16px).
+
 Target: the authenticated **정부 과제 추천** (AI government-grant recommendation) page.
 Scope: **reference clone, non-deploy**. All real account/PII values replaced with **mock data**.
 Original stack: Next.js + Tailwind (custom tokens like `gray5`, `blue5`) + SpoqaHanSansNeo.

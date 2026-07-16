@@ -51,8 +51,17 @@ export const NAV_SECTIONS: NavSection[] = [
 
 export const PLAN_LINK = { label: "서비스 플랜", icon: CreditCard, href: "#" };
 
-export const TOTAL_COUNT = 40;
 export const SORTS = ["최신 등록 순", "추천 컨설팅 순", "마감 임박 순"];
+export const SEARCH_SORTS = ["최신 게시 순", "마감 임박 순"];
+
+/** Fixed reference "today" so D-day values are deterministic across server/client. */
+export const BASE_DATE = "2026-07-16";
+
+export function ddayOf(deadline: string | null): number | null {
+  if (!deadline) return null;
+  const ms = Date.parse(deadline) - Date.parse(BASE_DATE);
+  return Number.isNaN(ms) ? null : Math.round(ms / 86400000);
+}
 
 /** Mock grant listings — representative, not the account's real recommendations. */
 export const NEW_ALERT_GRANT: Grant = {
@@ -193,6 +202,161 @@ export const GRANTS: Grant[] = [
 ];
 
 /* ------------------------------------------------------------------ */
+/* Full mock pool (40 grants) for list pagination + search             */
+/* ------------------------------------------------------------------ */
+
+const deadlineFrom = (period: string): string | null => {
+  const m = period.match(/(\d{4}-\d{2}-\d{2})\s*$/);
+  return m ? m[1] : null;
+};
+
+/** Representative seed rows for generated variants — mock, not real listings. */
+const SEEDS: Array<
+  Pick<Grant, "title" | "noticeName" | "ministry" | "agency" | "tags"> & {
+    supportType: "연구개발" | "사업화";
+  }
+> = [
+  {
+    title: "수소 연료전지 스택 내구성 향상 핵심소재 국산화 기술 개발",
+    noticeName: "2026년도 소재부품기술개발사업 신규지원 대상과제 공고",
+    ministry: "산업통상자원부",
+    agency: "한국산업기술기획평가원",
+    tags: ["수소·연료전지", "핵심소재 국산화", "스택 내구성"],
+    supportType: "연구개발",
+  },
+  {
+    title: "온디바이스 AI 추론 최적화를 위한 경량 신경망 컴파일러 개발",
+    noticeName: "2026년 ICT R&D 혁신 바우처 지원사업 공고",
+    ministry: "과학기술정보통신부",
+    agency: "정보통신기획평가원",
+    tags: ["인공지능", "온디바이스 AI", "컴파일러 최적화"],
+    supportType: "연구개발",
+  },
+  {
+    title: "폐배터리 재활용 공정 고도화 및 희유금속 회수율 향상 기술 개발",
+    noticeName: "2026년 순환경제 산업기술개발사업 신규과제 공고",
+    ministry: "환경부",
+    agency: "한국환경산업기술원",
+    tags: ["순환경제", "폐배터리 재활용", "희유금속 회수"],
+    supportType: "연구개발",
+  },
+  {
+    title: "스마트 양식장 수질 예측 AI 모델 및 자동 급이 시스템 실증",
+    noticeName: "2026년 해양수산 스마트화 기술개발 공고",
+    ministry: "해양수산부",
+    agency: "해양수산과학기술진흥원",
+    tags: ["스마트 양식", "수질 예측 AI", "자동 급이"],
+    supportType: "연구개발",
+  },
+  {
+    title: "차세대 전력반도체(SiC) 모듈 패키징 신뢰성 평가 기술 개발",
+    noticeName: "2026년 나노융합 혁신제품 기술개발사업 공고",
+    ministry: "산업통상자원부",
+    agency: "한국산업기술기획평가원",
+    tags: ["전력반도체", "SiC 패키징", "신뢰성 평가"],
+    supportType: "연구개발",
+  },
+  {
+    title: "의료 영상 판독 보조 AI의 임상 검증 및 인허가 지원",
+    noticeName: "2026년 범부처 전주기 의료기기 연구개발사업 공고",
+    ministry: "보건복지부",
+    agency: "한국보건산업진흥원",
+    tags: ["의료기기", "판독 보조 AI", "임상 검증"],
+    supportType: "사업화",
+  },
+  {
+    title: "고효율 페로브스카이트 태양전지 대면적 모듈화 공정 개발",
+    noticeName: "2026년 신재생에너지 핵심기술개발사업 공고",
+    ministry: "산업통상자원부",
+    agency: "한국에너지기술평가원",
+    tags: ["신재생에너지", "페로브스카이트", "대면적 모듈화"],
+    supportType: "연구개발",
+  },
+  {
+    title: "자율주행 라이다 신호처리 SoC 설계 및 검증 플랫폼 구축",
+    noticeName: "2026년 시스템반도체 설계지원 사업 공고",
+    ministry: "과학기술정보통신부",
+    agency: "정보통신산업진흥원",
+    tags: ["시스템반도체", "라이다 SoC", "자율주행"],
+    supportType: "연구개발",
+  },
+  {
+    title: "미생물 기반 생분해성 플라스틱 원료 대량생산 공정 개발",
+    noticeName: "2026년 바이오산업 기술개발사업 신규과제 공고",
+    ministry: "산업통상자원부",
+    agency: "한국산업기술진흥원",
+    tags: ["바이오소재", "생분해성 플라스틱", "대량생산 공정"],
+    supportType: "연구개발",
+  },
+  {
+    title: "위성 영상 기반 농작물 작황 분석 서비스 사업화",
+    noticeName: "2026년 우주기술 사업화 지원 공고",
+    ministry: "과학기술정보통신부",
+    agency: "한국연구재단",
+    tags: ["위성 영상", "작황 분석", "서비스 사업화"],
+    supportType: "사업화",
+  },
+];
+
+const REGION_CYCLE = ["전국", "전국", "서울", "경기", "울산", "충북", "전국", "부산", "대전", "전국"];
+const ORG_CYCLE = [
+  "대기업, 중견기업, 중소기업, 대학 연구실, 국공립/민간 연구기관",
+  "중소기업",
+  "중견기업, 중소기업, 대학 연구실, 국공립/민간 연구기관",
+  "중소기업, 대학 연구실, 국공립/민간 연구기관",
+  "대기업, 중견기업, 중소기업, 대학 연구실, 국공립/민간 연구기관, 의료기관",
+];
+const REVENUE_CYCLE = ["-/-", "-/1년 이내", "-/3년 이상", "5억원 이하/3년 이하", "-/-"];
+const AMOUNT_CYCLE = ["10억 원", "-", "5,000만 원", "3억 원", "-", "1.5억 원", "900만 원", "-"];
+const REG_DATES = ["2026-07-15", "2026-07-14", "2026-07-13", "2026-07-10", "2026-07-06", "2026-07-01", "2026-06-27", "2026-06-22"];
+const DEADLINES = ["2026-07-22", "2026-07-24", "2026-07-31", "2026-08-08", "2026-08-22", "2026-09-05", "2026-09-30", null];
+
+const GENERATED: Grant[] = Array.from({ length: 34 }, (_, i) => {
+  const seed = SEEDS[i % SEEDS.length];
+  const round = Math.floor(i / SEEDS.length); // 0..3 → (2차)(3차)(4차) suffixes
+  const deadline = DEADLINES[i % DEADLINES.length];
+  const registeredAt = REG_DATES[i % REG_DATES.length];
+  const dday = ddayOf(deadline);
+  const start = i % 3 === 0 ? registeredAt : "-";
+  const period = `${start} ~ ${deadline ?? "-"}`;
+  return {
+    id: `g-${7 + i}`,
+    isNew: registeredAt >= "2026-07-13",
+    deadlineNote: deadline ? `${start === "-" ? "~" : `${start} ~`} ${deadline}` : "별도 공지 시까지",
+    title: round === 0 ? seed.title : `${seed.title} (${round + 1}차)`,
+    noticeName: round === 0 ? seed.noticeName : `${seed.noticeName} (${round + 1}차)`,
+    period,
+    amount: AMOUNT_CYCLE[i % AMOUNT_CYCLE.length],
+    ministry: seed.ministry,
+    agency: seed.agency,
+    registeredAt,
+    matchScore: [4, 3, 4, 2, 4, 3][i % 6],
+    matchTotal: 4,
+    orgTypes: ORG_CYCLE[i % ORG_CYCLE.length],
+    regions: REGION_CYCLE[i % REGION_CYCLE.length],
+    revenue: REVENUE_CYCLE[i % REVENUE_CYCLE.length],
+    lab: i % 4 === 1 ? "필요" : "불필요",
+    tags: seed.tags,
+    dday,
+    supportType: seed.supportType,
+    // a couple of rows keep the live logged-out "?/4" red state for reference
+    matchUnknown: i === 3 || i === 11,
+  };
+});
+
+/** Full 40-grant pool: the 6 hand-written rows + 34 generated variants. */
+export const ALL_GRANTS: Grant[] = [
+  ...GRANTS.map((g) => ({
+    ...g,
+    dday: ddayOf(deadlineFrom(g.period)),
+    supportType: "연구개발" as const,
+  })),
+  ...GENERATED,
+];
+
+export const TOTAL_COUNT = ALL_GRANTS.length;
+
+/* ------------------------------------------------------------------ */
 /* Grant detail (mock)                                                 */
 /* ------------------------------------------------------------------ */
 
@@ -269,7 +433,7 @@ const GREEN_BIO_DETAIL: GrantDetail = {
 /** Build a detail view for any mock grant id (falls back to the flagship one). */
 export function getGrantDetail(id: string): GrantDetail {
   if (id === GREEN_BIO_DETAIL.id) return GREEN_BIO_DETAIL;
-  const g = GRANTS.find((x) => x.id === id);
+  const g = ALL_GRANTS.find((x) => x.id === id);
   if (!g) return GREEN_BIO_DETAIL;
   return {
     ...GREEN_BIO_DETAIL,

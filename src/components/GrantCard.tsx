@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { Bookmark } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BookmarkButton } from "@/components/BookmarkButton";
 import type { Grant } from "@/types/grant";
 
 function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
@@ -54,13 +54,7 @@ export function GrantCard({ grant }: { grant: Grant }) {
             )}
             <span className="text-sm text-ink-light">{grant.deadlineNote}</span>
           </div>
-          <button
-            type="button"
-            className="flex shrink-0 items-center gap-1.5 rounded-[5px] border border-line bg-panel px-3 py-2.5 text-sm font-bold text-ink hover:bg-line/60"
-          >
-            <Bookmark className="size-4" />
-            관심 공고 등록
-          </button>
+          <BookmarkButton grantId={grant.id} />
         </div>
         <h3 className="text-[17px] font-bold leading-snug text-ink group-hover:text-brand">
           {grant.title}

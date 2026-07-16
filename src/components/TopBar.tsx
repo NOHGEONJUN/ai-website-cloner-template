@@ -1,32 +1,38 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Pencil, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { USER } from "@/lib/mock-data";
 
-const TABS = ["맞춤 추천", "과제 검색", "관심 공고"];
+const TABS = [
+  { label: "맞춤 추천", href: "/gov-grant/recommend" },
+  { label: "과제 검색", href: "/gov-grant/search" },
+  { label: "관심 공고", href: "/gov-grant/saved" },
+];
 
 export function TopBar() {
-  const [tab, setTab] = useState(0);
+  const pathname = usePathname();
   return (
-    <header className="flex h-[72px] shrink-0 items-center gap-6 border-b border-line bg-white px-8">
-      <h1 className="text-[22px] font-bold text-ink">정부 과제 추천</h1>
-      <span className="h-4 w-px bg-line" />
+    <header className="sticky top-0 z-10 flex h-[72px] shrink-0 items-center gap-6 border-b-[1.5px] border-line bg-white px-8">
+      <Link href="/gov-grant/recommend" className="text-[22px] font-bold text-ink transition-colors hover:text-brand">
+        정부 과제 추천
+      </Link>
+      <span className="h-5 w-[2px] bg-gray-soft" />
 
-      <nav className="flex items-center gap-6">
-        {TABS.map((t, i) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => setTab(i)}
+      <nav className="flex items-center gap-10">
+        {TABS.map((t) => (
+          <Link
+            key={t.href}
+            href={t.href}
             className={cn(
               "text-[15px] font-bold transition-colors",
-              i === tab ? "text-brand" : "text-ink-light hover:text-ink-muted",
+              pathname === t.href ? "text-brand" : "text-gray-soft hover:text-ink-light",
             )}
           >
-            {t}
-          </button>
+            {t.label}
+          </Link>
         ))}
       </nav>
 
