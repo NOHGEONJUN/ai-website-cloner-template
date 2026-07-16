@@ -4,7 +4,9 @@ import { Footer } from "@/components/Footer";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-dvh bg-white">
+    // live app keeps a fixed ≥md layout (scrollWidth 1464) and horizontal-scrolls
+    // below it instead of squeezing — mirror that with a md min-width
+    <div className="flex min-h-dvh bg-white md:min-w-[1440px]">
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar />
