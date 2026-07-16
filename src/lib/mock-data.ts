@@ -27,8 +27,8 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     title: "정부과제 수주",
     links: [
-      { label: "정부과제 추천", icon: FileSearch, href: "#", active: true },
-      { label: "정부과제 검색", icon: FileText, href: "#" },
+      { label: "정부과제 추천", icon: FileSearch, href: "/gov-grant/recommend" },
+      { label: "정부과제 검색", icon: FileText, href: "/gov-grant/search" },
       { label: "과제 수주 문의", icon: MessageSquare, href: "#", external: true },
     ],
   },

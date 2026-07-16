@@ -107,6 +107,59 @@ function matchesRevenueYears(revenue: string, myRevenue: string, myYears: string
 
 const METRO = ["서울", "경기", "인천"];
 
+/** Mobile sort — the live app swaps the segmented control for a 132px listbox. */
+function MobileSortSelect({
+  value,
+  options,
+  onChange,
+}: {
+  value: number;
+  options: string[];
+  onChange: (i: number) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative hidden w-[132px] shrink-0 translate-y-[5px] max-md:block">
+      <button
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className="flex h-[34px] w-full items-center justify-between gap-1 rounded-[8px] bg-white px-2.5 py-[5px] text-left text-sm text-ink outline outline-1 outline-line focus:outline-2 focus:outline-brand-tag"
+      >
+        <span className="truncate">{options[value]}</span>
+        <ChevronDown className="size-4 text-ink-muted" />
+      </button>
+      {open && (
+        <ul
+          role="listbox"
+          className="absolute right-0 left-0 z-20 mt-1.5 overflow-hidden rounded-[8px] border border-line bg-white shadow-md"
+        >
+          {options.map((o, i) => (
+            <li key={o}>
+              <button
+                type="button"
+                role="option"
+                aria-selected={i === value}
+                onClick={() => {
+                  onChange(i);
+                  setOpen(false);
+                }}
+                className={cn(
+                  "w-full px-2.5 py-2 text-left text-sm",
+                  i === value ? "font-bold text-ink" : "text-ink-muted hover:bg-panel",
+                )}
+              >
+                {o}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export default function GovGrantSearchPage() {
   const [keyword, setKeyword] = useState("");
   const [committed, setCommitted] = useState("");
@@ -326,7 +379,15 @@ export default function GovGrantSearchPage() {
               />
               진행 중인 공고만 보기
             </button>
-            <div className="flex shrink-0 items-center gap-1 rounded-[5px] bg-panel px-[7px] py-1.5">
+            <MobileSortSelect
+              value={sort}
+              options={SEARCH_SORTS}
+              onChange={(i) => {
+                setSort(i);
+                setPage(1);
+              }}
+            />
+            <div className="flex shrink-0 items-center gap-1 rounded-[5px] bg-panel px-[7px] py-1.5 max-md:hidden">
               {SEARCH_SORTS.map((s, i) => (
                 <button
                   key={s}

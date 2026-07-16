@@ -52,7 +52,7 @@ export function GrantCard({ grant }: { grant: Grant }) {
                 NEW
               </span>
             )}
-            <span className="text-sm text-ink-light">{grant.deadlineNote}</span>
+            <span className="text-sm break-keep text-ink-light">{grant.deadlineNote}</span>
           </div>
           <BookmarkButton grantId={grant.id} />
         </div>

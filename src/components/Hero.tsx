@@ -11,7 +11,7 @@ export function Hero() {
       <div className="relative z-10 flex flex-col items-center gap-6 px-10 text-center">
         <div>
           <p className="text-sm font-bold text-white/80">AI 기반 과제 추천 서비스</p>
-          <h2 className="mt-3 text-[28px] font-bold leading-snug text-white">
+          <h2 className="mt-3 text-[28px] font-bold break-keep leading-snug text-white max-md:text-[22px]">
             우리 기관에 딱 맞는 과제를
             <br />
             매일 아침 추천받고 알림으로 확인해보세요!

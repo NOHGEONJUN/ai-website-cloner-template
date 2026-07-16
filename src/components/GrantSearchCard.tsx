@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { BookmarkButton } from "@/components/BookmarkButton";
@@ -32,6 +33,8 @@ function ReqBox({ label, value, unknown }: { label: string; value: string; unkno
 export function GrantSearchCard({ grant }: { grant: Grant }) {
   const unknown = grant.matchUnknown === true;
   const pct = Math.round((grant.matchScore / grant.matchTotal) * 100);
+  // mobile-only: 요건 보기 pill expands the requirement grid (collapsed by default <md)
+  const [reqOpen, setReqOpen] = useState(false);
   return (
     <Link
       href={`/gov-grant/${grant.id}`}
@@ -78,29 +81,52 @@ export function GrantSearchCard({ grant }: { grant: Grant }) {
 
         <div className="min-w-0 flex-1">
           <div className="flex h-full flex-col gap-3">
-            <div className="flex items-center gap-4 pl-[3px]">
-              <span className={cn("text-xs font-bold whitespace-nowrap", unknown ? "text-warn" : "text-ink")}>
-                요건 충족도 {unknown ? "?" : grant.matchScore}/{grant.matchTotal}
-              </span>
+            <div className="flex items-center gap-4 pl-[3px] max-md:flex-col max-md:items-start max-md:gap-2">
+              <div className="flex w-full items-center justify-between gap-2 md:w-auto">
+                <span className={cn("text-xs font-bold whitespace-nowrap", unknown ? "text-warn" : "text-ink")}>
+                  요건 충족도 {unknown ? "?" : grant.matchScore}/{grant.matchTotal}
+                </span>
+                <button
+                  type="button"
+                  aria-expanded={reqOpen}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setReqOpen((v) => !v);
+                  }}
+                  className="hidden h-7 items-center justify-center rounded-full bg-panel px-2.5 text-xs font-bold text-ink-muted max-md:inline-flex"
+                >
+                  요건 보기
+                </button>
+              </div>
               <div
                 className={cn(
-                  "relative h-4 min-h-4 flex-1 overflow-hidden rounded-full border-[1.5px]",
+                  "relative h-2.5 min-h-2.5 w-full overflow-hidden rounded-full border-[1.5px] md:h-4 md:min-h-4 md:flex-1",
                   unknown ? "border-warn/30 bg-warn/10" : "border-ok/30 bg-ok/10",
                 )}
               >
                 {unknown ? (
-                  <div className="mt-[1.5px] ml-[3px] size-2.5 rounded-full bg-warn" />
+                  <div className="mt-px ml-0.5 size-1.5 rounded-full bg-warn md:mt-[1.5px] md:ml-[3px] md:size-2.5" />
                 ) : (
                   <div className="h-full rounded-full bg-ok" style={{ width: `${pct}%` }} />
                 )}
               </div>
             </div>
 
-            <div className="grid flex-1 grid-cols-2 gap-3 max-md:grid-cols-1">
-              <ReqBox label="지원 가능 기관 유형" value={grant.orgTypes} unknown={unknown} />
-              <ReqBox label="지원 가능 소재지" value={grant.regions} unknown={unknown} />
-              <ReqBox label="지원 가능 매출액 / 사업연수" value={grant.revenue} unknown={unknown} />
-              <ReqBox label="부설 연구소 필요 유무" value={grant.lab} unknown={unknown} />
+            <div
+              className={cn(
+                "grid flex-1 grid-rows-[1fr] transition-all duration-200 ease-out",
+                !reqOpen && "max-md:-translate-y-1 max-md:grid-rows-[0fr] max-md:opacity-0",
+              )}
+            >
+              <div className="min-h-0 overflow-hidden">
+                <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
+                  <ReqBox label="지원 가능 기관 유형" value={grant.orgTypes} unknown={unknown} />
+                  <ReqBox label="지원 가능 소재지" value={grant.regions} unknown={unknown} />
+                  <ReqBox label="지원 가능 매출액 / 사업연수" value={grant.revenue} unknown={unknown} />
+                  <ReqBox label="부설 연구소 필요 유무" value={grant.lab} unknown={unknown} />
+                </div>
+              </div>
             </div>
           </div>
         </div>
