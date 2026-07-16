@@ -1,52 +1,20 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Search, RotateCw, ChevronDown } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { GrantSearchCard } from "@/components/GrantSearchCard";
 import { Pagination } from "@/components/Pagination";
+import { Chip, NumberField } from "@/components/FilterControls";
 import { cn } from "@/lib/utils";
 import { ALL_GRANTS, SEARCH_SORTS } from "@/lib/mock-data";
-import type { Grant } from "@/types/grant";
+import { filterGrants, sortSearchGrants } from "@/lib/search";
 
 const PAGE_SIZE = 10;
 
 const ORG_TYPES = ["대기업", "중견기업", "중소기업/스타트업", "대학 연구실", "공공/민간 연구기관", "의료기관"];
-const ORG_NEEDLES: Record<string, string> = {
-  대기업: "대기업",
-  중견기업: "중견기업",
-  "중소기업/스타트업": "중소기업",
-  "대학 연구실": "대학 연구실",
-  "공공/민간 연구기관": "연구기관",
-  의료기관: "의료기관",
-};
 const REGIONS = ["전국", "서울", "경기", "인천", "부산", "대구", "광주", "대전", "울산", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주", "비수도권"];
 const GRANT_TYPES = ["전체", "연구개발", "사업화"] as const;
-
-function Chip({
-  label,
-  selected,
-  onClick,
-}: {
-  label: string;
-  selected: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "h-7 rounded-[4px] border-[1.5px] px-2.5 text-xs whitespace-nowrap transition-colors",
-        selected
-          ? "border-brand-soft bg-brand-soft text-brand"
-          : "border-line bg-white text-ink-light hover:border-gray-soft",
-      )}
-    >
-      {label}
-    </button>
-  );
-}
 
 function FilterCell({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -56,56 +24,6 @@ function FilterCell({ label, children }: { label: string; children: React.ReactN
     </div>
   );
 }
-
-function NumberField({
-  placeholder,
-  suffix,
-  value,
-  onChange,
-}: {
-  placeholder: string;
-  suffix: string;
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <div className="flex h-[33px] items-center overflow-hidden rounded-[5px] border-[1.5px] border-line bg-white">
-      <input
-        type="number"
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="min-w-0 flex-1 px-2.5 text-sm outline-none [appearance:textfield] placeholder:text-ink-light [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-      />
-      <div className="flex h-full shrink-0 items-center justify-center border-l border-line bg-panel px-2.5">
-        <span className="text-xs text-gray-soft">{suffix}</span>
-      </div>
-    </div>
-  );
-}
-
-/** "-/3년 이상" 형태의 mock 요건 문자열과 입력값을 대조한다. */
-function matchesRevenueYears(revenue: string, myRevenue: string, myYears: string) {
-  const [rev = "-", years = "-"] = revenue.split("/").map((s) => s.trim());
-  if (myRevenue !== "" && rev !== "-") {
-    const limit = parseFloat(rev);
-    if (!Number.isNaN(limit) && rev.includes("이하") && parseFloat(myRevenue) > limit) return false;
-  }
-  if (myYears !== "" && years !== "-") {
-    const limit = parseFloat(years);
-    if (!Number.isNaN(limit)) {
-      const y = parseFloat(myYears);
-      if (years.includes("이내") || years.includes("이하")) {
-        if (y > limit) return false;
-      } else if (years.includes("이상") && y < limit) {
-        return false;
-      }
-    }
-  }
-  return true;
-}
-
-const METRO = ["서울", "경기", "인천"];
 
 /** Mobile sort — the live app swaps the segmented control for a 132px listbox. */
 function MobileSortSelect({
@@ -118,8 +36,23 @@ function MobileSortSelect({
   onChange: (i: number) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onOutside = (e: MouseEvent | TouchEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onOutside);
+    document.addEventListener("touchstart", onOutside);
+    return () => {
+      document.removeEventListener("mousedown", onOutside);
+      document.removeEventListener("touchstart", onOutside);
+    };
+  }, [open]);
+
   return (
-    <div className="relative hidden w-[132px] shrink-0 translate-y-[5px] max-md:block">
+    <div ref={rootRef} className="relative hidden w-[132px] shrink-0 translate-y-[5px] max-md:block">
       <button
         type="button"
         aria-haspopup="listbox"
@@ -187,31 +120,23 @@ export default function GovGrantSearchPage() {
     setPage(1);
   };
 
-  const results = useMemo(() => {
-    let list: Grant[] = ALL_GRANTS;
-    if (committed.trim()) {
-      const k = committed.trim();
-      list = list.filter((g) =>
-        [g.title, g.noticeName, g.ministry, g.agency, ...g.tags].some((s) => s.includes(k)),
-      );
-    }
-    if (orgs.length) list = list.filter((g) => orgs.some((o) => g.orgTypes.includes(ORG_NEEDLES[o])));
-    if (regions.length) {
-      list = list.filter((g) => {
-        if (g.regions === "전국" || regions.includes("전국")) return true;
-        if (regions.includes("비수도권") && !METRO.some((m) => g.regions.includes(m))) return true;
-        return regions.some((r) => g.regions.includes(r));
-      });
-    }
-    if (revenue !== "" || years !== "") list = list.filter((g) => matchesRevenueYears(g.revenue, revenue, years));
-    if (lab === "아니오") list = list.filter((g) => g.lab === "불필요");
-    if (grantType !== "전체") list = list.filter((g) => g.supportType === grantType);
-    if (ongoing) list = list.filter((g) => g.dday == null || g.dday >= 0);
-    const sorted = [...list];
-    if (sort === 0) sorted.sort((a, b) => b.registeredAt.localeCompare(a.registeredAt));
-    else sorted.sort((a, b) => (a.dday ?? Infinity) - (b.dday ?? Infinity));
-    return sorted;
-  }, [committed, orgs, regions, revenue, years, lab, grantType, ongoing, sort]);
+  const results = useMemo(
+    () =>
+      sortSearchGrants(
+        filterGrants(ALL_GRANTS, {
+          keyword: committed,
+          orgs,
+          regions,
+          revenue,
+          years,
+          lab,
+          grantType,
+          ongoing,
+        }),
+        sort,
+      ),
+    [committed, orgs, regions, revenue, years, lab, grantType, ongoing, sort],
+  );
 
   const pageCount = Math.ceil(results.length / PAGE_SIZE);
   const visible = results.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
