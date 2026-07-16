@@ -1,20 +1,9 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
-  title: "Website Clone",
-  description: "Pixel-perfect website clone",
+  title: "RnDcircle | 정부 과제 추천",
+  description: "AI 기반 정부 과제 추천 서비스 (reference clone)",
 };
 
 export default function RootLayout({
@@ -23,11 +12,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="ko" className="h-full antialiased">
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://spoqa.github.io/spoqa-han-sans/css/SpoqaHanSansNeo.css"
+        />
+      </head>
+      <body className="min-h-full bg-white font-sans text-ink">{children}</body>
     </html>
   );
 }

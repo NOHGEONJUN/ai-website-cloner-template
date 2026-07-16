@@ -1,9 +1,6 @@
-export default function Home() {
-  return (
-    <main className="flex min-h-screen items-center justify-center">
-      <p className="text-muted-foreground">
-        Clone target not yet built. Run <code className="font-mono text-foreground">/clone-website</code> to start.
-      </p>
-    </main>
-  );
+import { redirect } from "next/navigation";
+
+/** Match the original app's URL structure — the list lives at /gov-grant/recommend. */
+export default function RootPage() {
+  redirect("/gov-grant/recommend");
 }
