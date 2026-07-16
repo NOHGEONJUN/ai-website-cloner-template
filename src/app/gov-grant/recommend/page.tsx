@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { Hero } from "@/components/Hero";
 import { GrantCard } from "@/components/GrantCard";
@@ -11,13 +12,33 @@ import { sortRecommendGrants } from "@/lib/search";
 
 const PAGE_SIZE = 8;
 
-export default function GovGrantRecommendPage() {
-  const [sort, setSort] = useState(1);
-  const [page, setPage] = useState(1);
+const intParam = (v: string | null, fallback: number) => {
+  const n = parseInt(v ?? "", 10);
+  return Number.isNaN(n) ? fallback : n;
+};
+
+/* URL is the source of truth for page/sort so refresh, deep links, and
+   back/forward keep list state (an enhancement — the live app keeps it in memory). */
+function RecommendPageInner() {
+  const router = useRouter();
+  const sp = useSearchParams();
+  const sort = Math.min(Math.max(intParam(sp.get("sort"), 1), 0), SORTS.length - 1);
 
   const sorted = useMemo(() => sortRecommendGrants(ALL_GRANTS, sort), [sort]);
   const pageCount = Math.ceil(sorted.length / PAGE_SIZE);
+  const page = Math.min(Math.max(intParam(sp.get("page"), 1), 1), pageCount);
   const visible = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const update = (next: { page?: number; sort?: number }) => {
+    const q = new URLSearchParams(sp.toString());
+    const merged = { page, sort, ...next };
+    if (merged.page === 1) q.delete("page");
+    else q.set("page", String(merged.page));
+    if (merged.sort === 1) q.delete("sort");
+    else q.set("sort", String(merged.sort));
+    router.replace(`?${q.toString()}`, { scroll: false });
+    if (next.page !== undefined) window.scrollTo({ top: 0 });
+  };
 
   return (
     <AppShell>
@@ -44,10 +65,7 @@ export default function GovGrantRecommendPage() {
               <button
                 key={s}
                 type="button"
-                onClick={() => {
-                  setSort(i);
-                  setPage(1);
-                }}
+                onClick={() => update({ sort: i, page: 1 })}
                 className={cn(
                   "text-[13px]",
                   i === sort ? "font-bold text-ink" : "text-ink-light hover:text-ink-muted",
@@ -66,8 +84,16 @@ export default function GovGrantRecommendPage() {
           ))}
         </div>
 
-        <Pagination page={page} pageCount={pageCount} onChange={setPage} />
+        <Pagination page={page} pageCount={pageCount} onChange={(p) => update({ page: p })} />
       </div>
     </AppShell>
+  );
+}
+
+export default function GovGrantRecommendPage() {
+  return (
+    <Suspense fallback={null}>
+      <RecommendPageInner />
+    </Suspense>
   );
 }

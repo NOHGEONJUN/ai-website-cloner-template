@@ -1,6 +1,10 @@
+"use client";
+
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { BookmarkButton } from "@/components/BookmarkButton";
+import { useProfile } from "@/hooks/useProfile";
+import { computeMatch, hasProfile } from "@/lib/search";
 import type { Grant } from "@/types/grant";
 
 function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
@@ -16,18 +20,20 @@ function ReqBox({
   label,
   value,
   tone = "ink",
+  unmet = false,
 }: {
   label: string;
   value: string;
   tone?: "ink" | "ok";
+  unmet?: boolean;
 }) {
   return (
-    <div className="rounded-[5px] bg-ok-soft p-5">
-      <p className="text-xs text-ink-light">{label}</p>
+    <div className={cn("rounded-[5px] p-5", unmet ? "bg-warn/10" : "bg-ok-soft")}>
+      <p className={cn("text-xs", unmet ? "font-bold text-warn/50" : "text-ink-light")}>{label}</p>
       <p
         className={cn(
           "mt-2 text-sm font-bold leading-snug",
-          tone === "ok" ? "text-ok" : "text-ink",
+          unmet ? "text-warn" : tone === "ok" ? "text-ok" : "text-ink",
         )}
       >
         {value}
@@ -37,7 +43,12 @@ function ReqBox({
 }
 
 export function GrantCard({ grant }: { grant: Grant }) {
-  const pct = Math.round((grant.matchScore / grant.matchTotal) * 100);
+  const profile = useProfile();
+  // saved 나의 요건 overrides the mock score so the whole app reacts to the modal
+  const match = hasProfile(profile) ? computeMatch(grant, profile) : null;
+  const score = match ? match.score : grant.matchScore;
+  const met = match?.met ?? { org: true, region: true, revenue: true, lab: true };
+  const pct = Math.round((score / grant.matchTotal) * 100);
   return (
     <Link
       href={`/gov-grant/${grant.id}`}
@@ -84,7 +95,7 @@ export function GrantCard({ grant }: { grant: Grant }) {
         <div className="flex min-w-0 flex-1 flex-col gap-3">
           <div className="flex items-center gap-3">
             <span className="shrink-0 text-[13px] font-bold text-ink">
-              요건 충족도 {grant.matchScore}/{grant.matchTotal}
+              요건 충족도 {score}/{grant.matchTotal}
             </span>
             <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-line">
               <div className="h-full rounded-full bg-ok" style={{ width: `${pct}%` }} />
@@ -92,10 +103,10 @@ export function GrantCard({ grant }: { grant: Grant }) {
           </div>
 
           <div className="grid flex-1 grid-cols-2 gap-3 max-sm:grid-cols-1">
-            <ReqBox label="지원 가능 기관 유형" value={grant.orgTypes} tone="ok" />
-            <ReqBox label="지원 가능 소재지" value={grant.regions} />
-            <ReqBox label="지원 가능 매출액 / 사업연수" value={grant.revenue} />
-            <ReqBox label="부설 연구소 필요 유무" value={grant.lab} />
+            <ReqBox label="지원 가능 기관 유형" value={grant.orgTypes} tone="ok" unmet={!met.org} />
+            <ReqBox label="지원 가능 소재지" value={grant.regions} unmet={!met.region} />
+            <ReqBox label="지원 가능 매출액 / 사업연수" value={grant.revenue} unmet={!met.revenue} />
+            <ReqBox label="부설 연구소 필요 유무" value={grant.lab} unmet={!met.lab} />
           </div>
         </div>
       </div>

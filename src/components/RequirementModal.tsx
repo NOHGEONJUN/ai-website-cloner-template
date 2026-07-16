@@ -3,29 +3,11 @@
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { Chip, NumberField } from "@/components/FilterControls";
+import { readProfile, writeProfile } from "@/hooks/useProfile";
+import type { Profile } from "@/lib/search";
 
 const ORG_TYPES = ["대기업", "중견기업", "중소기업/스타트업", "대학 연구실", "공공/민간 연구기관", "의료기관"];
 const REGIONS = ["전국", "서울", "경기", "인천", "부산", "대구", "광주", "대전", "울산", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주"];
-
-const KEY = "rndc-profile";
-
-interface Profile {
-  org: string | null;
-  revenue: string;
-  years: string;
-  region: string | null;
-  lab: "예" | "아니오" | null;
-}
-
-const EMPTY: Profile = { org: null, revenue: "", years: "", region: null, lab: null };
-
-function readProfile(): Profile {
-  try {
-    return { ...EMPTY, ...JSON.parse(localStorage.getItem(KEY) ?? "{}") };
-  } catch {
-    return EMPTY;
-  }
-}
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -52,7 +34,7 @@ export function RequirementModal({ onClose }: { onClose: () => void }) {
   }, [onClose]);
 
   const save = () => {
-    localStorage.setItem(KEY, JSON.stringify(p));
+    writeProfile(p);
     onClose();
   };
 

@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { BookmarkButton } from "@/components/BookmarkButton";
+import { useProfile } from "@/hooks/useProfile";
+import { computeMatch, hasProfile } from "@/lib/search";
 import type { Grant } from "@/types/grant";
 
 function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
@@ -31,8 +33,13 @@ function ReqBox({ label, value, unknown }: { label: string; value: string; unkno
  * the live logged-out red "?/4" state.
  */
 export function GrantSearchCard({ grant }: { grant: Grant }) {
-  const unknown = grant.matchUnknown === true;
-  const pct = Math.round((grant.matchScore / grant.matchTotal) * 100);
+  const profile = useProfile();
+  // saved 나의 요건 resolves the unknown "?/4" state and recomputes met/unmet boxes
+  const match = hasProfile(profile) ? computeMatch(grant, profile) : null;
+  const unknown = match === null && grant.matchUnknown === true;
+  const score = match ? match.score : grant.matchScore;
+  const met = match?.met;
+  const pct = Math.round((score / grant.matchTotal) * 100);
   // mobile-only: 요건 보기 pill expands the requirement grid (collapsed by default <md)
   const [reqOpen, setReqOpen] = useState(false);
   // 알림받기 — reconstruction: the live flow is a signup funnel; here it toggles a subscribed state
@@ -86,7 +93,7 @@ export function GrantSearchCard({ grant }: { grant: Grant }) {
             <div className="flex items-center gap-4 pl-[3px] max-md:flex-col max-md:items-start max-md:gap-2">
               <div className="flex w-full items-center justify-between gap-2 md:w-auto">
                 <span className={cn("text-xs font-bold whitespace-nowrap", unknown ? "text-warn" : "text-ink")}>
-                  요건 충족도 {unknown ? "?" : grant.matchScore}/{grant.matchTotal}
+                  요건 충족도 {unknown ? "?" : score}/{grant.matchTotal}
                 </span>
                 <button
                   type="button"
@@ -123,10 +130,10 @@ export function GrantSearchCard({ grant }: { grant: Grant }) {
             >
               <div className="min-h-0 overflow-hidden">
                 <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
-                  <ReqBox label="지원 가능 기관 유형" value={grant.orgTypes} unknown={unknown} />
-                  <ReqBox label="지원 가능 소재지" value={grant.regions} unknown={unknown} />
-                  <ReqBox label="지원 가능 매출액 / 사업연수" value={grant.revenue} unknown={unknown} />
-                  <ReqBox label="부설 연구소 필요 유무" value={grant.lab} unknown={unknown} />
+                  <ReqBox label="지원 가능 기관 유형" value={grant.orgTypes} unknown={unknown || met?.org === false} />
+                  <ReqBox label="지원 가능 소재지" value={grant.regions} unknown={unknown || met?.region === false} />
+                  <ReqBox label="지원 가능 매출액 / 사업연수" value={grant.revenue} unknown={unknown || met?.revenue === false} />
+                  <ReqBox label="부설 연구소 필요 유무" value={grant.lab} unknown={unknown || met?.lab === false} />
                 </div>
               </div>
             </div>

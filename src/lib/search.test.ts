@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { Grant } from "@/types/grant";
 import {
+  computeMatch,
+  EMPTY_PROFILE,
   filterGrants,
+  hasProfile,
   matchesRevenueYears,
   sortRecommendGrants,
   sortSearchGrants,
@@ -112,5 +115,36 @@ describe("toggleBookmarkIds", () => {
   it("adds a missing id and removes an existing one", () => {
     expect(toggleBookmarkIds([], "g-1")).toEqual(["g-1"]);
     expect(toggleBookmarkIds(["g-1", "g-2"], "g-1")).toEqual(["g-2"]);
+  });
+});
+
+describe("computeMatch", () => {
+  const g = grant({ orgTypes: "중소기업, 대학 연구실", regions: "울산", revenue: "5억원 이하/3년 이상", lab: "필요" });
+
+  it("scores 4/4 when the profile satisfies everything", () => {
+    const r = computeMatch(g, { org: "중소기업/스타트업", revenue: "3", years: "5", region: "울산", lab: "예" });
+    expect(r.score).toBe(4);
+    expect(r.met).toEqual({ org: true, region: true, revenue: true, lab: true });
+  });
+  it("flags each unmet criterion", () => {
+    const r = computeMatch(g, { org: "대기업", revenue: "10", years: "1", region: "서울", lab: "아니오" });
+    expect(r.score).toBe(0);
+    expect(r.met).toEqual({ org: false, region: false, revenue: false, lab: false });
+  });
+  it("counts unfilled criteria as met", () => {
+    const r = computeMatch(g, { org: null, revenue: "", years: "", region: null, lab: null });
+    expect(r.score).toBe(4);
+  });
+  it("전국 grants match any region; 전국 profile matches any grant", () => {
+    expect(computeMatch(grant({ regions: "전국" }), { ...EMPTY_PROFILE, region: "제주" }).met.region).toBe(true);
+    expect(computeMatch(g, { ...EMPTY_PROFILE, region: "전국" }).met.region).toBe(true);
+  });
+});
+
+describe("hasProfile", () => {
+  it("is false for null/empty and true when any field is set", () => {
+    expect(hasProfile(null)).toBe(false);
+    expect(hasProfile(EMPTY_PROFILE)).toBe(false);
+    expect(hasProfile({ ...EMPTY_PROFILE, revenue: "5" })).toBe(true);
   });
 });
