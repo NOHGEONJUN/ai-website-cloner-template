@@ -7,26 +7,15 @@ import { GrantCard } from "@/components/GrantCard";
 import { Pagination } from "@/components/Pagination";
 import { cn } from "@/lib/utils";
 import { ALL_GRANTS, NEW_ALERT_GRANT, SORTS, TOTAL_COUNT } from "@/lib/mock-data";
-import type { Grant } from "@/types/grant";
+import { sortRecommendGrants } from "@/lib/search";
 
 const PAGE_SIZE = 8;
-
-const byRegistered = (a: Grant, b: Grant) => b.registeredAt.localeCompare(a.registeredAt);
-const byDday = (a: Grant, b: Grant) => (a.dday ?? Infinity) - (b.dday ?? Infinity);
-
-function sortGrants(grants: Grant[], sort: number): Grant[] {
-  const list = [...grants];
-  if (sort === 0) list.sort(byRegistered);
-  else if (sort === 1) list.sort((a, b) => b.matchScore - a.matchScore || byRegistered(a, b));
-  else list.sort(byDday);
-  return list;
-}
 
 export default function GovGrantRecommendPage() {
   const [sort, setSort] = useState(1);
   const [page, setPage] = useState(1);
 
-  const sorted = useMemo(() => sortGrants(ALL_GRANTS, sort), [sort]);
+  const sorted = useMemo(() => sortRecommendGrants(ALL_GRANTS, sort), [sort]);
   const pageCount = Math.ceil(sorted.length / PAGE_SIZE);
   const visible = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 

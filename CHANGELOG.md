@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Detail page fidelity pass against the live public detail page: exact chip palette (지원유형 blue7, 사업규모 purple, 지원금 olive, pill keyword chips), 22px lavender section bands, 43px header card, urgency-aware D-day badge, navy 3-stop promo rail (sticky, hidden on mobile), light-gradient AI CTA link card
+- Sidebar collapse to the live app's 68px icon rail (and back)
+- 나의 요건 수정하기 modal (reconstruction) persisting the mock profile to localStorage; 알림받기 buttons toggle a subscribed state; detail-page bookmark button now shares the global bookmark store
+- vitest with 24 unit tests over the extracted search/sort/bookmark logic (`src/lib/search.ts`); `npm run check` now runs tests
+
+### Fixed
+- Mobile sort listbox closes on outside tap/click
+- Detail breadcrumb and CTA now link to `/gov-grant/recommend` instead of the old root route
 - 과제 검색 page (`/gov-grant/search`) cloned from the live site: search textarea, 요건/필터 panel (기관 유형·매출액·사업연수·소재지·부설연구소·과제 유형), ongoing-only toggle, segmented sort, D-day cards with red unknown-match state — all operating on the mock dataset
 - 관심 공고 page (`/gov-grant/saved`, layout reconstructed — live page is login-only) with localStorage-backed bookmark toggling on every grant card
 - Extracted global footer (link row + mock company block) on all pages

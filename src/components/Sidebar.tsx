@@ -113,7 +113,49 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
+/** Collapsed 68px icon rail — reconstruction of the live "사이드바 닫기" state. */
+function CollapsedRail({ onExpand }: { onExpand: () => void }) {
+  const pathname = usePathname();
+  const links = NAV_SECTIONS.flatMap((s) => s.links).filter((l) => !l.external);
+  return (
+    <aside className="flex h-dvh w-[68px] shrink-0 flex-col items-center overflow-y-auto border-r border-line bg-white pb-4 max-md:hidden">
+      <button
+        type="button"
+        aria-label="사이드바 열기"
+        onClick={onExpand}
+        className="flex h-[64px] items-center justify-center"
+      >
+        <Image src="/logo/rndcircle-mark.svg" alt="RnDcircle" width={28} height={28} priority />
+      </button>
+      <nav className="flex flex-col items-center gap-1.5">
+        {links.map((l) => {
+          const Icon = l.icon;
+          const active = l.href !== "#" && pathname.startsWith(l.href);
+          return (
+            <Link
+              key={l.label}
+              href={l.href}
+              title={l.label}
+              className={cn(
+                "flex size-10 items-center justify-center rounded-lg transition-colors",
+                active ? "bg-line text-ink" : "text-ink/70 hover:bg-line/60",
+              )}
+            >
+              <Icon className="size-[18px]" strokeWidth={1.7} />
+            </Link>
+          );
+        })}
+      </nav>
+      <span className="mt-auto flex size-8 items-center justify-center rounded-full bg-brand-tag text-xs font-bold text-brand-2">
+        {USER.initial}
+      </span>
+    </aside>
+  );
+}
+
 export function Sidebar() {
+  const [collapsed, setCollapsed] = useState(false);
+  if (collapsed) return <CollapsedRail onExpand={() => setCollapsed(false)} />;
   return (
     <aside className="flex h-dvh w-[240px] shrink-0 flex-col overflow-y-auto border-r border-line bg-panel max-md:hidden">
       {/* logo */}
@@ -125,7 +167,7 @@ export function Sidebar() {
           height={24}
           priority
         />
-        <button type="button" aria-label="사이드바 접기">
+        <button type="button" aria-label="사이드바 접기" onClick={() => setCollapsed(true)}>
           <PanelLeftClose className="size-4 text-ink-muted hover:text-ink" />
         </button>
       </div>

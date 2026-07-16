@@ -35,6 +35,8 @@ export function GrantSearchCard({ grant }: { grant: Grant }) {
   const pct = Math.round((grant.matchScore / grant.matchTotal) * 100);
   // mobile-only: 요건 보기 pill expands the requirement grid (collapsed by default <md)
   const [reqOpen, setReqOpen] = useState(false);
+  // 알림받기 — reconstruction: the live flow is a signup funnel; here it toggles a subscribed state
+  const [subscribed, setSubscribed] = useState(false);
   return (
     <Link
       href={`/gov-grant/${grant.id}`}
@@ -143,10 +145,17 @@ export function GrantSearchCard({ grant }: { grant: Grant }) {
         </div>
         <button
           type="button"
-          onClick={(e) => e.preventDefault()}
-          className="shrink-0 text-sm font-bold whitespace-nowrap text-brand underline underline-offset-2"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setSubscribed((v) => !v);
+          }}
+          className={cn(
+            "shrink-0 text-sm font-bold whitespace-nowrap underline underline-offset-2",
+            subscribed ? "text-ok no-underline" : "text-brand",
+          )}
         >
-          매일 아침 맞춤 공고 알림받기 &gt;
+          {subscribed ? "✓ 매일 아침 알림 신청됨" : "매일 아침 맞춤 공고 알림받기 >"}
         </button>
       </div>
     </Link>

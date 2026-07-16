@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { Pencil, ChevronDown, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SidebarContent } from "@/components/Sidebar";
+import { RequirementModal } from "@/components/RequirementModal";
 import { USER } from "@/lib/mock-data";
 
 const TABS = [
@@ -33,6 +34,7 @@ function MobileMenu({ onClose }: { onClose: () => void }) {
 export function TopBar() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   return (
     <header className="sticky top-0 z-10 border-b-[1.5px] border-line bg-white">
       <div className="flex h-[72px] items-center gap-6 px-8 max-md:h-auto max-md:flex-col max-md:items-stretch max-md:gap-3 max-md:px-4 max-md:py-3.5">
@@ -75,6 +77,7 @@ export function TopBar() {
         <div className="ml-auto flex items-center gap-4 max-md:hidden">
           <button
             type="button"
+            onClick={() => setProfileOpen(true)}
             className="flex items-center gap-1.5 rounded-[5px] bg-brand-soft px-4 py-[11px] text-sm font-bold text-brand hover:brightness-95"
           >
             <Pencil className="size-3.5" />
@@ -90,6 +93,7 @@ export function TopBar() {
         </div>
       </div>
       {menuOpen && <MobileMenu onClose={() => setMenuOpen(false)} />}
+      {profileOpen && <RequirementModal onClose={() => setProfileOpen(false)} />}
     </header>
   );
 }

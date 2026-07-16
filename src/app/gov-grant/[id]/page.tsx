@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { Bookmark, Check, ChevronLeft, ExternalLink, Sparkles, ArrowRight } from "lucide-react";
+import { Check, ChevronLeft, ExternalLink, WandSparkles, ArrowRight } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { BookmarkButton } from "@/components/BookmarkButton";
 import { getGrantDetail } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import type { GrantDetail } from "@/types/grant";
@@ -31,10 +32,26 @@ function Highlight({ text, words }: { text: string; words: string[] }) {
 }
 
 const HEADER_TONES = {
-  brand: "bg-[#dddeff] text-brand",
+  brand: "bg-brand-tag text-brand",
   ok: "bg-[#e9fbee] text-ok",
   warn: "bg-[#fdf0e4] text-[#e08a2e]",
 } as const;
+
+/** Detail D-day badge: live shows red when imminent; far-off deadlines render dark. */
+function DdayBadge({ dday }: { dday: string }) {
+  const n = parseInt(dday.replace(/\D/g, ""), 10);
+  const urgent = !Number.isNaN(n) && n <= 30;
+  return (
+    <span
+      className={cn(
+        "rounded-[2px] px-2 py-1 text-xs font-bold whitespace-nowrap text-white",
+        urgent ? "bg-warn" : "bg-[#4b4f56]",
+      )}
+    >
+      {dday}
+    </span>
+  );
+}
 
 function SectionCard({
   title,
@@ -48,9 +65,9 @@ function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded-2xl border border-line bg-white">
-      <header className={cn("flex items-baseline gap-2 px-7 py-5", HEADER_TONES[tone])}>
-        <h2 className="text-lg font-bold">{title}</h2>
+    <section className="overflow-hidden rounded-[20px] border border-line bg-white max-md:rounded-2xl">
+      <header className={cn("flex items-baseline gap-3 border-b border-line px-7 py-5", HEADER_TONES[tone])}>
+        <h2 className="text-[22px] font-bold max-md:text-base">{title}</h2>
         {suffix}
       </header>
       <div className="px-7 py-2">{children}</div>
@@ -58,23 +75,30 @@ function SectionCard({
   );
 }
 
-function Chip({ tone = "line", children }: { tone?: "line" | "brand" | "ok"; children: React.ReactNode }) {
+/* Chip tones extracted from the live detail page:
+   line = outlined pill, type = 지원유형(blue7), scale = 사업규모(purple), ok = 지원금(olive) */
+function Chip({
+  tone = "line",
+  children,
+}: {
+  tone?: "line" | "type" | "scale" | "ok";
+  children: React.ReactNode;
+}) {
   const tones = {
-    line: "border border-line bg-white text-ink",
-    brand: "bg-brand-tag text-brand-2",
-    ok: "bg-[#e9fbee] text-ok",
+    line: "rounded-[20px] border border-line bg-panel px-2.5 py-1 font-semibold text-ink-muted",
+    type: "rounded-[2px] bg-[#e9ebff] px-2 py-1 font-bold text-brand",
+    scale: "rounded-[2px] bg-[#ecdcff] px-2 py-1 font-bold text-[#7000ff]",
+    ok: "rounded-[2px] bg-[#d0e5b5] px-2 py-1 font-bold text-[#67a01e]",
   };
-  return (
-    <span className={cn("inline-flex rounded-[5px] px-2.5 py-1.5 text-xs font-bold", tones[tone])}>
-      {children}
-    </span>
-  );
+  return <span className={cn("inline-flex items-center text-xs", tones[tone])}>{children}</span>;
 }
 
 function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-start gap-6 border-b border-line py-5 last:border-0">
-      <span className="w-[110px] shrink-0 text-[13px] text-ink-muted">{label}</span>
+    <div className="flex items-start gap-6 border-b border-line py-4 last:border-0">
+      <span className="flex h-6 w-[100px] shrink-0 items-center text-xs font-medium tracking-wide text-ink-muted">
+        {label}
+      </span>
       <div className="min-w-0 flex-1 text-sm text-ink">{children}</div>
     </div>
   );
@@ -94,13 +118,13 @@ function ReqBox({ label, value, wide }: { label: string; value: string; wide?: b
 function PromoCard() {
   const items = ["기관에 맞는 과제 추천/알림", "과제 지원서 작성 서포트", "공동연구기관 매칭"];
   return (
-    <div className="rounded-2xl bg-gradient-to-br from-[#151580] to-[#3b3be0] p-8 text-white">
+    <div className="flex flex-col gap-[30px] rounded-[32px] border border-white/10 bg-gradient-to-br from-[#1b0e69] via-[#141a9c] to-[#323aff] p-[34px] text-white">
       <h3 className="text-[22px] font-bold leading-snug">
         지금 바로 과제 수주
         <br />
         성공률을 높여보세요!
       </h3>
-      <ul className="mt-6 flex flex-col gap-3">
+      <ul className="flex flex-col gap-3">
         {items.map((t) => (
           <li key={t} className="flex items-center gap-2 text-sm font-bold">
             <Check className="size-4 rounded-full bg-white/20 p-0.5" />
@@ -108,7 +132,7 @@ function PromoCard() {
           </li>
         ))}
       </ul>
-      <button className="mt-7 flex w-full items-center justify-center gap-1.5 rounded-lg bg-white px-4 py-3.5 text-base font-bold text-ink hover:brightness-95">
+      <button className="flex w-full items-center justify-center gap-1.5 rounded-[5px] border-[1.5px] border-line bg-panel px-[25px] py-[11px] text-lg font-bold text-ink hover:brightness-95">
         과제 준비 시작하기 <ExternalLink className="size-4" />
       </button>
     </div>
@@ -122,31 +146,51 @@ function AiCta() {
     { n: "매일 아침 추천", l: "추천 주기" },
   ];
   return (
-    <section className="rounded-2xl bg-gradient-to-br from-[#eef0ff] to-[#f7f8ff] p-8">
-      <span className="inline-flex items-center gap-1.5 rounded-lg bg-white/70 px-2.5 py-1.5 text-xs font-bold text-brand-2">
-        <Sparkles className="size-3.5" /> AI 기반 공고 추천
-      </span>
-      <h3 className="mt-4 text-[22px] font-bold text-ink">딱 맞는 과제, AI가 찾아드려요</h3>
-      <p className="mt-2 text-sm leading-relaxed text-ink-muted">
-        우리 기관에 딱 맞는 과제를
-        <br />
-        매일 아침 추천받고 알림으로 확인해보세요!
-      </p>
-      <div className="mt-5 flex flex-wrap gap-8">
-        {stats.map((s) => (
-          <div key={s.l}>
-            <p className="text-lg font-bold text-brand">{s.n}</p>
-            <p className="text-xs text-ink-light">{s.l}</p>
+    <Link
+      href="/gov-grant/recommend"
+      className="relative block overflow-hidden rounded-[24px] border-[1.5px] border-[rgba(59,130,246,0.15)] p-10 max-md:rounded-[18px] max-md:p-5"
+      style={{ background: "linear-gradient(135deg, #eff6ff 0%, #eef2ff 50%, #f5f3ff 100%)" }}
+    >
+      <div
+        className="absolute -top-[60px] -right-[60px] size-[280px] rounded-full"
+        style={{ background: "radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%)" }}
+      />
+      <div
+        className="absolute -bottom-10 left-[20%] size-[200px] rounded-full"
+        style={{ background: "radial-gradient(circle, rgba(139,92,246,0.08) 0%, transparent 70%)" }}
+      />
+      <div className="relative flex items-center justify-between gap-12 max-md:block">
+        <div className="flex flex-1 flex-col gap-5">
+          <div className="flex items-center gap-2">
+            <span className="flex size-7 items-center justify-center rounded-[8px] border border-brand/20 bg-brand/10 text-brand">
+              <WandSparkles className="size-3" />
+            </span>
+            <span className="text-xs font-bold tracking-[2px] text-brand uppercase">AI 기반 공고 추천</span>
           </div>
-        ))}
+          <div className="flex flex-col gap-2">
+            <h3 className="text-2xl leading-[1.35] font-bold tracking-[-0.5px] text-ink max-md:text-xl">
+              딱 맞는 과제, AI가 찾아드려요
+            </h3>
+            <p className="leading-[1.75] text-ink-muted max-md:text-sm">
+              우리 기관에 딱 맞는 과제를
+              <br />
+              매일 아침 추천받고 알림으로 확인해보세요!
+            </p>
+          </div>
+          <div className="flex items-center gap-7 max-md:flex-wrap max-md:gap-4">
+            {stats.map((s) => (
+              <div key={s.l} className="flex flex-col gap-0.5">
+                <span className="text-lg leading-none font-bold text-brand">{s.n}</span>
+                <span className="text-xs text-ink-light">{s.l}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand px-5 py-3 text-sm font-bold text-white max-md:mt-5">
+          과제 추천 서비스 이용 <ArrowRight className="size-4" />
+        </span>
       </div>
-      <Link
-        href="/"
-        className="mt-6 inline-flex items-center gap-1.5 rounded-lg bg-brand px-5 py-3 text-sm font-bold text-white hover:brightness-110"
-      >
-        과제 추천 서비스 이용 <ArrowRight className="size-4" />
-      </Link>
-    </section>
+    </Link>
   );
 }
 
@@ -165,19 +209,17 @@ export default async function GrantDetailPage({
     <AppShell>
       <div className="mx-auto w-full max-w-[1136px] px-8 py-6">
         <Link
-          href="/"
+          href="/gov-grant/recommend"
           className="inline-flex items-center gap-0.5 text-sm text-brand underline underline-offset-2"
         >
           <ChevronLeft className="size-4" /> 목록으로 돌아가기
         </Link>
 
         {/* header card */}
-        <div className="mt-4 rounded-2xl border border-line bg-white p-8">
+        <div className="mt-4 rounded-[20px] border-[1.5px] border-line bg-white p-[43px] max-md:p-5">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-[5px] bg-[#4b4f56] px-2.5 py-1.5 text-xs font-bold text-white">
-              {d.dday}
-            </span>
-            <Chip tone="brand">{d.supportType}</Chip>
+            <DdayBadge dday={d.dday} />
+            <Chip tone="type">{d.supportType}</Chip>
             <span className="text-[13px] text-ink-muted">
               <Highlight text={d.noticeName} words={d.keywords} />
             </span>
@@ -194,10 +236,9 @@ export default async function GrantDetailPage({
                 {d.agency}
               </p>
             </div>
-            <button className="flex shrink-0 items-center gap-1.5 self-end rounded-[5px] border border-line bg-panel px-3 py-2.5 text-sm font-bold text-ink hover:bg-line/60">
-              <Bookmark className="size-4" />
-              관심 공고 등록
-            </button>
+            <div className="self-end">
+              <BookmarkButton grantId={d.id} />
+            </div>
           </div>
         </div>
 
@@ -217,7 +258,7 @@ export default async function GrantDetailPage({
                 </div>
               </InfoRow>
               <InfoRow label="사업 규모">
-                <Chip tone="brand">{d.scale}</Chip>
+                <Chip tone="scale">{d.scale}</Chip>
               </InfoRow>
               <InfoRow label="지원금">
                 <Chip tone="ok">{d.amount}</Chip>
@@ -236,8 +277,8 @@ export default async function GrantDetailPage({
                 <span className="text-base">{d.deadline}</span>
               </InfoRow>
               <InfoRow label="신청 기간">
-                <span className="mr-2 rounded-[5px] bg-[#4b4f56] px-2 py-1 text-xs font-bold text-white">
-                  {d.dday}
+                <span className="mr-2 inline-flex">
+                  <DdayBadge dday={d.dday} />
                 </span>
                 <span className="text-base">{d.periodNote}</span>
               </InfoRow>
@@ -292,7 +333,7 @@ export default async function GrantDetailPage({
               {d.overview.map((s) => (
                 <div key={s.n} className="border-b border-line py-6 last:border-0">
                   <div className="mb-3 flex items-center gap-2">
-                    <span className="flex size-5 items-center justify-center rounded bg-brand-tag text-[11px] font-bold text-brand">
+                    <span className="inline-flex shrink-0 items-center justify-center rounded-[2px] bg-brand-tag px-1.5 py-0.5 text-xs font-bold text-brand">
                       {s.n}
                     </span>
                     <h3 className="text-sm font-bold text-brand">{s.title}</h3>
@@ -325,8 +366,8 @@ export default async function GrantDetailPage({
             </div>
           </div>
 
-          {/* right rail */}
-          <aside className="sticky top-6 w-[370px] shrink-0 max-lg:static max-lg:w-full">
+          {/* right rail — live app hides it entirely below md */}
+          <aside className="sticky top-[130px] w-[376px] shrink-0 max-md:hidden">
             <PromoCard />
           </aside>
         </div>

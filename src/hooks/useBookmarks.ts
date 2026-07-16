@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { toggleBookmarkIds } from "@/lib/search";
 
 const KEY = "rndc-bookmarks";
 const EVENT = "rndc-bookmarks-change";
@@ -35,8 +36,7 @@ export function useBookmarks() {
   }, []);
 
   const toggle = useCallback((id: string) => {
-    const cur = read();
-    const next = cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id];
+    const next = toggleBookmarkIds(read(), id);
     localStorage.setItem(KEY, JSON.stringify(next));
     window.dispatchEvent(new Event(EVENT));
   }, []);
