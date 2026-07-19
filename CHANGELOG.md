@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Perfect pass: URL-synced list state (refresh/deep-link/back-forward safe), persistent sidebar collapse, live-extracted detail 404, profile-driven 요건 충족도 across every card and the detail page
+- 3-step onboarding funnel (`/gov-grant/onboarding`, reconstruction) and `/auth/signin` clone
+- Pixel-diff tooling (`scripts/pixel-diff.mjs`); content column and vertical rhythm now match the live page within 1px (search-page diff 4.43% → 3.15%, remainder is intentional mock-state differences)
+- Self-hosted SpoqaHanSansNeo via `next/font/local`; extracted `typo-*` utility scale
+- Modal focus trap, listbox arrow-key navigation, 35 unit/hook tests (jsdom + Testing Library)
 - Detail page fidelity pass against the live public detail page: exact chip palette (지원유형 blue7, 사업규모 purple, 지원금 olive, pill keyword chips), 22px lavender section bands, 43px header card, urgency-aware D-day badge, navy 3-stop promo rail (sticky, hidden on mobile), light-gradient AI CTA link card
 - Sidebar collapse to the live app's 68px icon rail (and back)
 - 나의 요건 수정하기 modal (reconstruction) persisting the mock profile to localStorage; 알림받기 buttons toggle a subscribed state; detail-page bookmark button now shares the global bookmark store

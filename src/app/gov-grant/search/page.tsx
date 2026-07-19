@@ -38,7 +38,9 @@ function MobileSortSelect({
   onChange: (i: number) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(value);
   const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -53,13 +55,59 @@ function MobileSortSelect({
     };
   }, [open]);
 
+  const select = (i: number) => {
+    onChange(i);
+    setOpen(false);
+    triggerRef.current?.focus();
+  };
+
+  // listbox keyboard support: arrows move the active option, Enter selects, Esc closes
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (!open) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        setActive(value);
+        setOpen(true);
+      }
+      return;
+    }
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActive((i) => Math.min(i + 1, options.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActive((i) => Math.max(i - 1, 0));
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      setActive(0);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      setActive(options.length - 1);
+    } else if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      select(active);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      setOpen(false);
+      triggerRef.current?.focus();
+    }
+  };
+
   return (
-    <div ref={rootRef} className="relative hidden w-[132px] shrink-0 translate-y-[5px] max-md:block">
+    <div
+      ref={rootRef}
+      onKeyDown={onKeyDown}
+      className="relative hidden w-[132px] shrink-0 translate-y-[5px] max-md:block"
+    >
       <button
+        ref={triggerRef}
         type="button"
         aria-haspopup="listbox"
         aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          setActive(value);
+          setOpen((v) => !v);
+        }}
         className="flex h-[34px] w-full items-center justify-between gap-1 rounded-[8px] bg-white px-2.5 py-[5px] text-left text-sm text-ink outline outline-1 outline-line focus:outline-2 focus:outline-brand-tag"
       >
         <span className="truncate">{options[value]}</span>
@@ -68,21 +116,22 @@ function MobileSortSelect({
       {open && (
         <ul
           role="listbox"
+          aria-activedescendant={`sort-option-${active}`}
           className="absolute right-0 left-0 z-20 mt-1.5 overflow-hidden rounded-[8px] border border-line bg-white shadow-md"
         >
           {options.map((o, i) => (
             <li key={o}>
               <button
+                id={`sort-option-${i}`}
                 type="button"
                 role="option"
                 aria-selected={i === value}
-                onClick={() => {
-                  onChange(i);
-                  setOpen(false);
-                }}
+                onMouseEnter={() => setActive(i)}
+                onClick={() => select(i)}
                 className={cn(
                   "w-full px-2.5 py-2 text-left text-sm",
-                  i === value ? "font-bold text-ink" : "text-ink-muted hover:bg-panel",
+                  i === value ? "font-bold text-ink" : "text-ink-muted",
+                  i === active && "bg-panel",
                 )}
               >
                 {o}
