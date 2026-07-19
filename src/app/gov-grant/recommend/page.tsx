@@ -42,7 +42,8 @@ function RecommendPageInner() {
 
   return (
     <AppShell>
-      <div className="mx-auto flex w-full max-w-[1136px] flex-col gap-6 px-8 py-6">
+      {/* px-8 + 1136px content column = original's computed content width */}
+      <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-6 px-8 py-6">
         <Hero />
 
         {/* new alert */}

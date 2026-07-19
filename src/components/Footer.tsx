@@ -18,7 +18,7 @@ export function Footer() {
     <footer className="mx-auto mt-[150px] mb-[45px] w-full max-w-[1136px]">
       <div className="flex items-center gap-10 border-b border-line pt-0.5 pb-6 max-md:flex-wrap max-md:gap-x-6 max-md:gap-y-2">
         {LINKS.map((l) => (
-          <a key={l} href="#" className="text-sm font-bold whitespace-nowrap text-ink-muted hover:text-ink">
+          <a key={l} href="#" className="typo-sub-body-3 whitespace-nowrap text-ink-muted hover:text-ink">
             {l}
           </a>
         ))}
@@ -28,9 +28,9 @@ export function Footer() {
           <div className="pb-[3px]">
             <Image src="/logo/rndcircle-wordmark.svg" alt="RnDcircle" width={115} height={20} />
           </div>
-          <p className="text-sm font-bold whitespace-nowrap text-ink">주식회사 김연구컴퍼니</p>
+          <p className="typo-sub-body-3 whitespace-nowrap text-ink">주식회사 김연구컴퍼니</p>
         </div>
-        <div className="flex flex-col gap-2 text-xs font-medium text-ink-light">
+        <div className="typo-caption-1 flex flex-col gap-2 text-ink-light">
           <div className="flex w-[78%] flex-wrap gap-x-[30px] max-md:flex-col">
             {INFO.map((s) => (
               <span key={s}>{s}</span>

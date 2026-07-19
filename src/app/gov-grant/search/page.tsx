@@ -181,10 +181,10 @@ function SearchPageInner() {
 
   return (
     <AppShell>
-      <div className="mx-auto flex w-full max-w-[1136px] flex-col px-8 pb-6 max-md:px-4">
+      <div className="mx-auto flex w-full max-w-[1200px] flex-col px-8 pb-6 max-md:px-4">
         {/* heading */}
         <div className="mt-10 flex flex-col gap-1.5 max-md:mt-7">
-          <h2 className="text-[32px] leading-[1.4] font-medium tracking-[-0.02em] text-ink max-md:text-lg">
+          <h2 className="typo-section text-ink max-md:text-lg">
             원하는 정부 과제를 검색하고 필터를 적용해보세요
           </h2>
           <p className="font-medium text-ink-light max-md:text-[13px] max-md:break-keep">
@@ -214,7 +214,7 @@ function SearchPageInner() {
         <SearchFilters state={state} update={update} toggleIn={toggleIn} />
 
         {/* result bar */}
-        <div className="mt-[35px] flex items-center justify-between gap-4 px-1 max-md:mt-6 max-md:flex-col max-md:items-stretch">
+        <div className="mt-[56px] flex items-center justify-between gap-4 px-1 max-md:mt-6 max-md:flex-col max-md:items-stretch">
           <div className="flex items-center gap-[5px] font-bold text-ink-light">
             <span>총</span>
             <span className="text-brand">{results.length.toLocaleString()}</span>
@@ -257,7 +257,7 @@ function SearchPageInner() {
         </div>
 
         {/* results */}
-        <div className="mt-4 flex flex-col gap-6">
+        <div className="mt-5 flex flex-col gap-6">
           {visible.map((g) => (
             <GrantSearchCard key={g.id} grant={g} />
           ))}
@@ -288,7 +288,7 @@ function SearchFilters({
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   return (
-    <div className="mt-[35px] flex flex-col gap-4 max-md:mt-6">
+    <div className="mt-[55px] flex flex-col gap-4 max-md:mt-6">
       <div className="flex items-center justify-between gap-3">
         <span className="font-bold text-ink">요건 / 필터</span>
         <div className="flex items-center gap-2">

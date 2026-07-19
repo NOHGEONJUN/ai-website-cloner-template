@@ -68,7 +68,7 @@ function SectionCard({
   return (
     <section className="overflow-hidden rounded-[20px] border border-line bg-white max-md:rounded-2xl">
       <header className={cn("flex items-baseline gap-3 border-b border-line px-7 py-5", HEADER_TONES[tone])}>
-        <h2 className="text-[22px] font-bold max-md:text-base">{title}</h2>
+        <h2 className="typo-headline max-md:text-base">{title}</h2>
         {suffix}
       </header>
       <div className="px-7 py-2">{children}</div>
@@ -219,7 +219,7 @@ export default async function GrantDetailPage({
 
   return (
     <AppShell>
-      <div className="mx-auto w-full max-w-[1136px] px-8 py-6">
+      <div className="mx-auto w-full max-w-[1200px] px-8 py-6">
         <Link
           href="/gov-grant/recommend"
           className="inline-flex items-center gap-0.5 text-sm text-brand underline underline-offset-2"

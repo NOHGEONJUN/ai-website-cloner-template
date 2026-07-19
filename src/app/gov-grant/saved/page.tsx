@@ -28,7 +28,7 @@ export default function GovGrantSavedPage() {
 
   return (
     <AppShell>
-      <div className="mx-auto flex w-full max-w-[1136px] flex-col gap-6 px-8 py-6">
+      <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-6 px-8 py-6">
         {saved.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-32 text-center">
             <span className="flex size-14 items-center justify-center rounded-full bg-panel">

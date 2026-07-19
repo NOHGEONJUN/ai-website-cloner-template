@@ -66,8 +66,8 @@ export function GrantSearchCard({ grant }: { grant: Grant }) {
           </div>
           <BookmarkButton grantId={grant.id} />
         </div>
-        <h3 className="text-base font-bold break-keep text-ink">{grant.title}</h3>
-        <div className="flex min-w-0 items-center gap-1.5 text-xs text-ink-light max-md:flex-wrap">
+        <h3 className="typo-body-3 break-keep text-ink">{grant.title}</h3>
+        <div className="typo-caption-1 flex min-w-0 items-center gap-1.5 text-ink-light max-md:flex-wrap">
           <span className="shrink-0">공고명</span>
           <span className="shrink-0">|</span>
           <span className="truncate">{grant.noticeName}</span>

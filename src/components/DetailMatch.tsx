@@ -56,7 +56,7 @@ export function DetailMatch({
           allMet ? "bg-[#e9fbee] text-ok" : "bg-warn/10 text-warn",
         )}
       >
-        <h2 className="text-[22px] font-bold max-md:text-base">요건 충족도</h2>
+        <h2 className="typo-headline max-md:text-base">요건 충족도</h2>
         <span className="text-sm font-bold">
           {score}/{total}
         </span>
