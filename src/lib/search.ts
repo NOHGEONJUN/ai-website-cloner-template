@@ -95,3 +95,47 @@ export function sortRecommendGrants(grants: Grant[], mode: number): Grant[] {
 export function toggleBookmarkIds(current: string[], id: string): string[] {
   return current.includes(id) ? current.filter((x) => x !== id) : [...current, id];
 }
+
+/* ------------------------------------------------------------------ */
+/* 나의 요건 profile → 요건 충족도 computation                          */
+/* ------------------------------------------------------------------ */
+
+export interface Profile {
+  org: string | null;
+  revenue: string;
+  years: string;
+  region: string | null;
+  lab: "예" | "아니오" | null;
+  /** 희망 과제 주제 (onboarding funnel, reconstruction) */
+  topics?: string[];
+  /** 매일 아침 신규 과제 알림 (onboarding funnel, reconstruction) */
+  alarm?: boolean;
+}
+
+export const EMPTY_PROFILE: Profile = { org: null, revenue: "", years: "", region: null, lab: null };
+
+export function hasProfile(p: Profile | null): p is Profile {
+  return !!p && !!(p.org || p.revenue !== "" || p.years !== "" || p.region || p.lab);
+}
+
+type MatchInput = Pick<Grant, "orgTypes" | "regions" | "revenue" | "lab">;
+
+export interface MatchResult {
+  score: number;
+  met: { org: boolean; region: boolean; revenue: boolean; lab: boolean };
+}
+
+/**
+ * Recompute 요건 충족도 from the saved profile. Unfilled criteria count as met
+ * (the live app only scores what it knows about the org).
+ */
+export function computeMatch(g: MatchInput, p: Profile): MatchResult {
+  const org = p.org ? g.orgTypes.includes(ORG_NEEDLES[p.org] ?? p.org) : true;
+  const region = p.region
+    ? g.regions === "전국" || p.region === "전국" || g.regions.includes(p.region)
+    : true;
+  const revenue = matchesRevenueYears(g.revenue, p.revenue, p.years);
+  const lab = p.lab === "아니오" ? g.lab === "불필요" : true;
+  const met = { org, region, revenue, lab };
+  return { score: Object.values(met).filter(Boolean).length, met };
+}

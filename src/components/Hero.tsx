@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export function Hero() {
   return (
     <section
@@ -17,12 +19,12 @@ export function Hero() {
             매일 아침 추천받고 알림으로 확인해보세요!
           </h2>
         </div>
-        <button
-          type="button"
+        <Link
+          href="/gov-grant/onboarding"
           className="rounded-[5px] bg-white px-[25px] py-[14px] text-base font-bold text-brand hover:brightness-95"
         >
           과제 추천 정보 수정하기
-        </button>
+        </Link>
       </div>
     </section>
   );

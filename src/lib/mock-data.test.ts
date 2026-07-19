@@ -31,16 +31,17 @@ describe("ALL_GRANTS", () => {
 
 describe("getGrantDetail", () => {
   it("returns the flagship detail for its own id", () => {
-    expect(getGrantDetail(NEW_ALERT_GRANT.id).id).toBe(NEW_ALERT_GRANT.id);
+    expect(getGrantDetail(NEW_ALERT_GRANT.id)?.id).toBe(NEW_ALERT_GRANT.id);
   });
   it("derives a detail view for any pool grant", () => {
     const g = ALL_GRANTS[10];
     const d = getGrantDetail(g.id);
-    expect(d.id).toBe(g.id);
-    expect(d.title).toBe(g.title);
-    expect(d.coreKeywords).toEqual(g.tags);
+    expect(d).not.toBeNull();
+    expect(d?.id).toBe(g.id);
+    expect(d?.title).toBe(g.title);
+    expect(d?.coreKeywords).toEqual(g.tags);
   });
-  it("falls back to the flagship detail for unknown ids", () => {
-    expect(getGrantDetail("nonexistent").id).toBe(NEW_ALERT_GRANT.id);
+  it("returns null for unknown ids (renders the live 404 state)", () => {
+    expect(getGrantDetail("nonexistent")).toBeNull();
   });
 });

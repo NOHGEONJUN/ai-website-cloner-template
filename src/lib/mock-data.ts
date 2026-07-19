@@ -430,11 +430,11 @@ const GREEN_BIO_DETAIL: GrantDetail = {
   ],
 };
 
-/** Build a detail view for any mock grant id (falls back to the flagship one). */
-export function getGrantDetail(id: string): GrantDetail {
+/** Build a detail view for a mock grant id; null renders the live 404 state. */
+export function getGrantDetail(id: string): GrantDetail | null {
   if (id === GREEN_BIO_DETAIL.id) return GREEN_BIO_DETAIL;
   const g = ALL_GRANTS.find((x) => x.id === id);
-  if (!g) return GREEN_BIO_DETAIL;
+  if (!g) return null;
   return {
     ...GREEN_BIO_DETAIL,
     id: g.id,

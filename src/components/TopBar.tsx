@@ -37,11 +37,11 @@ export function TopBar() {
   const [profileOpen, setProfileOpen] = useState(false);
   return (
     <header className="sticky top-0 z-10 border-b-[1.5px] border-line bg-white">
-      <div className="flex h-[72px] items-center gap-6 px-8 max-md:h-auto max-md:flex-col max-md:items-stretch max-md:gap-3 max-md:px-4 max-md:py-3.5">
+      <div className="flex h-[80px] items-center gap-6 px-8 max-md:h-auto max-md:flex-col max-md:items-stretch max-md:gap-3 max-md:px-4 max-md:py-3.5">
         <div className="flex items-center justify-between md:contents">
           <Link
             href="/gov-grant/recommend"
-            className="text-[22px] font-bold text-ink transition-colors hover:text-brand"
+            className="typo-headline text-ink transition-colors hover:text-brand"
           >
             정부 과제 추천
           </Link>
@@ -62,7 +62,7 @@ export function TopBar() {
               key={t.href}
               href={t.href}
               className={cn(
-                "relative shrink-0 text-[15px] font-bold transition-colors max-md:pb-0.5 max-md:text-sm",
+                "typo-body-3 relative shrink-0 transition-colors max-md:pb-0.5 max-md:text-sm",
                 pathname === t.href ? "text-brand" : "text-gray-soft hover:text-ink-light",
               )}
             >

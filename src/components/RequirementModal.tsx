@@ -1,31 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { Chip, NumberField } from "@/components/FilterControls";
+import { readProfile, writeProfile } from "@/hooks/useProfile";
+import type { Profile } from "@/lib/search";
 
 const ORG_TYPES = ["대기업", "중견기업", "중소기업/스타트업", "대학 연구실", "공공/민간 연구기관", "의료기관"];
 const REGIONS = ["전국", "서울", "경기", "인천", "부산", "대구", "광주", "대전", "울산", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주"];
-
-const KEY = "rndc-profile";
-
-interface Profile {
-  org: string | null;
-  revenue: string;
-  years: string;
-  region: string | null;
-  lab: "예" | "아니오" | null;
-}
-
-const EMPTY: Profile = { org: null, revenue: "", years: "", region: null, lab: null };
-
-function readProfile(): Profile {
-  try {
-    return { ...EMPTY, ...JSON.parse(localStorage.getItem(KEY) ?? "{}") };
-  } catch {
-    return EMPTY;
-  }
-}
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -44,15 +26,44 @@ export function RequirementModal({ onClose }: { onClose: () => void }) {
   // The modal is only ever mounted client-side (opened by click), so the lazy
   // initializer can read localStorage directly.
   const [p, setP] = useState<Profile>(readProfile);
+  const panelRef = useRef<HTMLDivElement>(null);
 
+  // focus trap: focus moves into the dialog, Tab cycles inside it, and the
+  // opener regains focus on close
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const panel = panelRef.current;
+    const opener = document.activeElement as HTMLElement | null;
+    const focusables = () =>
+      [...(panel?.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      ) ?? [])].filter((el) => !el.hasAttribute("disabled"));
+    focusables()[0]?.focus();
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "Tab") {
+        const els = focusables();
+        if (!els.length) return;
+        const first = els[0];
+        const last = els[els.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      opener?.focus();
+    };
   }, [onClose]);
 
   const save = () => {
-    localStorage.setItem(KEY, JSON.stringify(p));
+    writeProfile(p);
     onClose();
   };
 
@@ -62,6 +73,7 @@ export function RequirementModal({ onClose }: { onClose: () => void }) {
       onClick={onClose}
     >
       <div
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label="나의 요건 수정하기"

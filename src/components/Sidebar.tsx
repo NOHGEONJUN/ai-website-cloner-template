@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown, ChevronUp, PanelLeftClose, ArrowUpRight } from "lucide-react";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { cn } from "@/lib/utils";
 import { NAV_SECTIONS, PLAN_LINK, TEAM, USER } from "@/lib/mock-data";
 import type { NavSection } from "@/types/grant";
@@ -153,9 +153,31 @@ function CollapsedRail({ onExpand }: { onExpand: () => void }) {
   );
 }
 
+/* Collapse state persists across navigations via a tiny localStorage-backed
+   external store (useSyncExternalStore keeps SSR hydration clean). */
+const COLLAPSE_KEY = "rndc-sidebar-collapsed";
+const collapseListeners = new Set<() => void>();
+const subscribeCollapse = (cb: () => void) => {
+  collapseListeners.add(cb);
+  return () => collapseListeners.delete(cb);
+};
+const readCollapsed = () => {
+  try {
+    return localStorage.getItem(COLLAPSE_KEY) === "1";
+  } catch {
+    return false;
+  }
+};
+const writeCollapsed = (v: boolean) => {
+  localStorage.setItem(COLLAPSE_KEY, v ? "1" : "0");
+  collapseListeners.forEach((cb) => cb());
+};
+
 export function Sidebar() {
-  const [collapsed, setCollapsed] = useState(false);
-  if (collapsed) return <CollapsedRail onExpand={() => setCollapsed(false)} />;
+  const collapsed = useSyncExternalStore(subscribeCollapse, readCollapsed, () => false);
+  const toggle = writeCollapsed;
+
+  if (collapsed) return <CollapsedRail onExpand={() => toggle(false)} />;
   return (
     <aside className="flex h-dvh w-[240px] shrink-0 flex-col overflow-y-auto border-r border-line bg-panel max-md:hidden">
       {/* logo */}
@@ -167,7 +189,7 @@ export function Sidebar() {
           height={24}
           priority
         />
-        <button type="button" aria-label="사이드바 접기" onClick={() => setCollapsed(true)}>
+        <button type="button" aria-label="사이드바 접기" onClick={() => toggle(true)}>
           <PanelLeftClose className="size-4 text-ink-muted hover:text-ink" />
         </button>
       </div>

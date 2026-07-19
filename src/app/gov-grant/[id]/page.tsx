@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Check, ChevronLeft, ExternalLink, WandSparkles, ArrowRight } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { BookmarkButton } from "@/components/BookmarkButton";
+import { DetailMatch } from "@/components/DetailMatch";
 import { getGrantDetail } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import type { GrantDetail } from "@/types/grant";
@@ -67,7 +68,7 @@ function SectionCard({
   return (
     <section className="overflow-hidden rounded-[20px] border border-line bg-white max-md:rounded-2xl">
       <header className={cn("flex items-baseline gap-3 border-b border-line px-7 py-5", HEADER_TONES[tone])}>
-        <h2 className="text-[22px] font-bold max-md:text-base">{title}</h2>
+        <h2 className="typo-headline max-md:text-base">{title}</h2>
         {suffix}
       </header>
       <div className="px-7 py-2">{children}</div>
@@ -100,15 +101,6 @@ function InfoRow({ label, children }: { label: string; children: React.ReactNode
         {label}
       </span>
       <div className="min-w-0 flex-1 text-sm text-ink">{children}</div>
-    </div>
-  );
-}
-
-function ReqBox({ label, value, wide }: { label: string; value: string; wide?: boolean }) {
-  return (
-    <div className={cn("rounded-[5px] bg-ok-soft p-4", wide && "col-span-3")}>
-      <p className="text-xs text-ink-light">{label}</p>
-      <p className="mt-1.5 text-sm font-bold text-ok">{value}</p>
     </div>
   );
 }
@@ -202,12 +194,32 @@ export default async function GrantDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const d: GrantDetail = getGrantDetail(id);
-  const pct = Math.round((d.matchScore / d.matchTotal) * 100);
+  const d: GrantDetail | null = getGrantDetail(id);
+
+  // live 404 state, extracted from app.rndcircle.io/gov-grant/<unknown-id>
+  if (!d) {
+    return (
+      <AppShell>
+        <div className="flex min-h-[70vh] items-center justify-center">
+          <div className="text-center">
+            <p className="mb-4 text-[64px]">📋</p>
+            <h1 className="mb-2 text-[22px] font-bold text-ink">존재하지 않는 공고입니다</h1>
+            <p className="mb-6 text-ink-muted">요청하신 공고를 찾을 수 없습니다.</p>
+            <Link
+              href="/gov-grant/saved"
+              className="inline-flex h-11 items-center gap-1.5 rounded-[10px] bg-brand px-5 font-bold text-white transition-colors hover:bg-brand-2"
+            >
+              저장한 공고로 돌아가기
+            </Link>
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>
-      <div className="mx-auto w-full max-w-[1136px] px-8 py-6">
+      <div className="mx-auto w-full max-w-[1200px] px-8 py-6">
         <Link
           href="/gov-grant/recommend"
           className="inline-flex items-center gap-0.5 text-sm text-brand underline underline-offset-2"
@@ -291,28 +303,15 @@ export default async function GrantDetailPage({
               </p>
             </SectionCard>
 
-            {/* 요건 충족도 */}
-            <SectionCard
-              title="요건 충족도"
-              tone="ok"
-              suffix={
-                <span className="text-sm font-bold text-ok">
-                  {d.matchScore}/{d.matchTotal}
-                </span>
-              }
-            >
-              <div className="py-5">
-                <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-line">
-                  <div className="h-full rounded-full bg-ok" style={{ width: `${pct}%` }} />
-                </div>
-                <div className="grid grid-cols-3 gap-3 max-sm:grid-cols-1">
-                  <ReqBox label="지원 가능 기관 유형" value={d.reqOrgTypes} wide />
-                  <ReqBox label="지원 가능 소재지" value={d.reqRegions} />
-                  <ReqBox label="지원 가능 매출액 / 사업연수" value={d.reqRevenue} />
-                  <ReqBox label="부설 연구소 필요 유무" value={d.reqLab} />
-                </div>
-              </div>
-            </SectionCard>
+            {/* 요건 충족도 — recomputes from the saved 나의 요건 profile */}
+            <DetailMatch
+              orgTypes={d.reqOrgTypes}
+              regions={d.reqRegions}
+              revenue={d.reqRevenue}
+              lab={d.reqLab}
+              fallbackScore={d.matchScore}
+              total={d.matchTotal}
+            />
 
             {/* 지원 요건 */}
             <SectionCard title="지원 요건" tone="warn">

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Search, RotateCw, ChevronDown } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { GrantSearchCard } from "@/components/GrantSearchCard";
@@ -15,6 +16,7 @@ const PAGE_SIZE = 10;
 const ORG_TYPES = ["대기업", "중견기업", "중소기업/스타트업", "대학 연구실", "공공/민간 연구기관", "의료기관"];
 const REGIONS = ["전국", "서울", "경기", "인천", "부산", "대구", "광주", "대전", "울산", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주", "비수도권"];
 const GRANT_TYPES = ["전체", "연구개발", "사업화"] as const;
+type GrantType = (typeof GRANT_TYPES)[number];
 
 function FilterCell({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -36,7 +38,9 @@ function MobileSortSelect({
   onChange: (i: number) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(value);
   const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -51,13 +55,59 @@ function MobileSortSelect({
     };
   }, [open]);
 
+  const select = (i: number) => {
+    onChange(i);
+    setOpen(false);
+    triggerRef.current?.focus();
+  };
+
+  // listbox keyboard support: arrows move the active option, Enter selects, Esc closes
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (!open) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        setActive(value);
+        setOpen(true);
+      }
+      return;
+    }
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActive((i) => Math.min(i + 1, options.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActive((i) => Math.max(i - 1, 0));
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      setActive(0);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      setActive(options.length - 1);
+    } else if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      select(active);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      setOpen(false);
+      triggerRef.current?.focus();
+    }
+  };
+
   return (
-    <div ref={rootRef} className="relative hidden w-[132px] shrink-0 translate-y-[5px] max-md:block">
+    <div
+      ref={rootRef}
+      onKeyDown={onKeyDown}
+      className="relative hidden w-[132px] shrink-0 translate-y-[5px] max-md:block"
+    >
       <button
+        ref={triggerRef}
         type="button"
         aria-haspopup="listbox"
         aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          setActive(value);
+          setOpen((v) => !v);
+        }}
         className="flex h-[34px] w-full items-center justify-between gap-1 rounded-[8px] bg-white px-2.5 py-[5px] text-left text-sm text-ink outline outline-1 outline-line focus:outline-2 focus:outline-brand-tag"
       >
         <span className="truncate">{options[value]}</span>
@@ -66,21 +116,22 @@ function MobileSortSelect({
       {open && (
         <ul
           role="listbox"
+          aria-activedescendant={`sort-option-${active}`}
           className="absolute right-0 left-0 z-20 mt-1.5 overflow-hidden rounded-[8px] border border-line bg-white shadow-md"
         >
           {options.map((o, i) => (
             <li key={o}>
               <button
+                id={`sort-option-${i}`}
                 type="button"
                 role="option"
                 aria-selected={i === value}
-                onClick={() => {
-                  onChange(i);
-                  setOpen(false);
-                }}
+                onMouseEnter={() => setActive(i)}
+                onClick={() => select(i)}
                 className={cn(
                   "w-full px-2.5 py-2 text-left text-sm",
-                  i === value ? "font-bold text-ink" : "text-ink-muted hover:bg-panel",
+                  i === value ? "font-bold text-ink" : "text-ink-muted",
+                  i === active && "bg-panel",
                 )}
               >
                 {o}
@@ -93,60 +144,96 @@ function MobileSortSelect({
   );
 }
 
-export default function GovGrantSearchPage() {
-  const [keyword, setKeyword] = useState("");
-  const [committed, setCommitted] = useState("");
-  const [orgs, setOrgs] = useState<string[]>([]);
-  const [regions, setRegions] = useState<string[]>([]);
-  const [revenue, setRevenue] = useState("");
-  const [years, setYears] = useState("");
-  const [lab, setLab] = useState<"예" | "아니오" | null>(null);
-  const [grantType, setGrantType] = useState<(typeof GRANT_TYPES)[number]>("전체");
-  const [ongoing, setOngoing] = useState(true);
-  const [sort, setSort] = useState(0);
-  const [page, setPage] = useState(1);
-  const [mobileOpen, setMobileOpen] = useState(false);
+const intParam = (v: string | null, fallback: number) => {
+  const n = parseInt(v ?? "", 10);
+  return Number.isNaN(n) ? fallback : n;
+};
+const listParam = (v: string | null) => (v ? v.split(",").filter(Boolean) : []);
+
+interface SearchState {
+  q: string;
+  orgs: string[];
+  regions: string[];
+  rev: string;
+  yrs: string;
+  lab: "예" | "아니오" | null;
+  type: GrantType;
+  ongoing: boolean;
+  sort: number;
+  page: number;
+}
+
+/* URL is the source of truth for every committed filter, so refresh and
+   back/forward keep results (enhancement — the live app keeps this in memory). */
+function SearchPageInner() {
+  const router = useRouter();
+  const sp = useSearchParams();
+
+  const state: SearchState = {
+    q: sp.get("q") ?? "",
+    orgs: listParam(sp.get("orgs")),
+    regions: listParam(sp.get("regions")),
+    rev: sp.get("rev") ?? "",
+    yrs: sp.get("yrs") ?? "",
+    lab: sp.get("lab") === "예" || sp.get("lab") === "아니오" ? (sp.get("lab") as "예" | "아니오") : null,
+    type: GRANT_TYPES.includes(sp.get("type") as GrantType) ? (sp.get("type") as GrantType) : "전체",
+    ongoing: sp.get("ongoing") !== "0",
+    sort: Math.min(Math.max(intParam(sp.get("sort"), 0), 0), SEARCH_SORTS.length - 1),
+    page: Math.max(intParam(sp.get("page"), 1), 1),
+  };
+
+  const [keyword, setKeyword] = useState(state.q);
+
+  const update = (patch: Partial<SearchState>) => {
+    const s = { ...state, page: 1, ...patch };
+    const q = new URLSearchParams();
+    if (s.q) q.set("q", s.q);
+    if (s.orgs.length) q.set("orgs", s.orgs.join(","));
+    if (s.regions.length) q.set("regions", s.regions.join(","));
+    if (s.rev) q.set("rev", s.rev);
+    if (s.yrs) q.set("yrs", s.yrs);
+    if (s.lab) q.set("lab", s.lab);
+    if (s.type !== "전체") q.set("type", s.type);
+    if (!s.ongoing) q.set("ongoing", "0");
+    if (s.sort !== 0) q.set("sort", String(s.sort));
+    if (s.page !== 1) q.set("page", String(s.page));
+    const qs = q.toString();
+    router.replace(qs ? `?${qs}` : "?", { scroll: false });
+    if (patch.page !== undefined) window.scrollTo({ top: 0 });
+  };
 
   const toggleIn = (list: string[], v: string) =>
     list.includes(v) ? list.filter((x) => x !== v) : [...list, v];
-
-  const resetFilters = () => {
-    setOrgs([]);
-    setRegions([]);
-    setRevenue("");
-    setYears("");
-    setLab(null);
-    setGrantType("전체");
-    setPage(1);
-  };
 
   const results = useMemo(
     () =>
       sortSearchGrants(
         filterGrants(ALL_GRANTS, {
-          keyword: committed,
-          orgs,
-          regions,
-          revenue,
-          years,
-          lab,
-          grantType,
-          ongoing,
+          keyword: state.q,
+          orgs: state.orgs,
+          regions: state.regions,
+          revenue: state.rev,
+          years: state.yrs,
+          lab: state.lab,
+          grantType: state.type,
+          ongoing: state.ongoing,
         }),
-        sort,
+        state.sort,
       ),
-    [committed, orgs, regions, revenue, years, lab, grantType, ongoing, sort],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [sp],
   );
 
   const pageCount = Math.ceil(results.length / PAGE_SIZE);
+  const page = Math.min(state.page, Math.max(pageCount, 1));
   const visible = results.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <AppShell>
-      <div className="mx-auto flex w-full max-w-[1136px] flex-col px-8 pb-6 max-md:px-4">
+      <div className="mx-auto flex w-full max-w-[1200px] flex-col px-8 pb-6 max-md:px-4">
         {/* heading */}
         <div className="mt-10 flex flex-col gap-1.5 max-md:mt-7">
-          <h2 className="text-[32px] leading-[1.4] font-medium tracking-[-0.02em] text-ink max-md:text-lg">
+          <h2 className="typo-section text-ink max-md:text-lg">
             원하는 정부 과제를 검색하고 필터를 적용해보세요
           </h2>
           <p className="font-medium text-ink-light max-md:text-[13px] max-md:break-keep">
@@ -164,10 +251,7 @@ export default function GovGrantSearchPage() {
           />
           <button
             type="button"
-            onClick={() => {
-              setCommitted(keyword);
-              setPage(1);
-            }}
+            onClick={() => update({ q: keyword })}
             className="flex w-28 shrink-0 flex-col items-center justify-center gap-1.5 rounded-[10px] bg-brand text-white transition-colors hover:bg-brand-3 max-md:h-12 max-md:w-full max-md:flex-row"
           >
             <Search className="size-5" />
@@ -176,109 +260,10 @@ export default function GovGrantSearchPage() {
         </div>
 
         {/* filter panel */}
-        <div className="mt-[35px] flex flex-col gap-4 max-md:mt-6">
-          <div className="flex items-center justify-between gap-3">
-            <span className="font-bold text-ink">요건 / 필터</span>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={resetFilters}
-                className="flex items-center gap-1 rounded-[5px] border-[1.5px] border-line bg-panel px-2.5 py-[5px] text-sm font-bold text-ink-light transition-colors hover:text-ink-muted"
-              >
-                <RotateCw className="size-4" />
-                초기화
-              </button>
-              <button
-                type="button"
-                aria-expanded={mobileOpen}
-                onClick={() => setMobileOpen((v) => !v)}
-                className="hidden items-center gap-1 rounded-[5px] border-[1.5px] border-line bg-white px-2.5 py-[5px] text-sm font-bold text-ink-light transition-colors max-md:flex"
-              >
-                {mobileOpen ? "필터 접기" : "필터 펼치기"}
-                <ChevronDown className={cn("size-3 transition-transform", mobileOpen && "rotate-180")} />
-              </button>
-            </div>
-          </div>
-
-          <div
-            className={cn(
-              "grid overflow-hidden rounded-[20px] border-[1.5px] border-line bg-line transition-all duration-200 ease-out md:grid-cols-3 md:gap-[1.5px] max-md:rounded-[16px]",
-              !mobileOpen && "max-md:grid-rows-[0fr] max-md:-translate-y-1 max-md:border-0 max-md:opacity-0",
-            )}
-          >
-            <div className="grid min-h-0 grid-cols-1 gap-[1.5px] overflow-hidden md:contents">
-              <FilterCell label="기관 유형">
-                <div className="flex flex-wrap gap-1.5">
-                  {ORG_TYPES.map((o) => (
-                    <Chip
-                      key={o}
-                      label={o}
-                      selected={orgs.includes(o)}
-                      onClick={() => {
-                        setOrgs((v) => toggleIn(v, o));
-                        setPage(1);
-                      }}
-                    />
-                  ))}
-                </div>
-              </FilterCell>
-              <FilterCell label="내 매출액">
-                <NumberField placeholder="매출액 입력" suffix="억원" value={revenue} onChange={(v) => { setRevenue(v); setPage(1); }} />
-              </FilterCell>
-              <FilterCell label="내 사업연수">
-                <NumberField placeholder="사업 연수 입력" suffix="년" value={years} onChange={(v) => { setYears(v); setPage(1); }} />
-              </FilterCell>
-              <FilterCell label="기관 소재지">
-                <div className="flex flex-wrap gap-1.5">
-                  {REGIONS.map((r) => (
-                    <Chip
-                      key={r}
-                      label={r}
-                      selected={regions.includes(r)}
-                      onClick={() => {
-                        setRegions((v) => toggleIn(v, r));
-                        setPage(1);
-                      }}
-                    />
-                  ))}
-                </div>
-              </FilterCell>
-              <FilterCell label="부설연구소/연구전담부서 유무">
-                <div className="flex flex-wrap gap-1.5">
-                  {(["예", "아니오"] as const).map((v) => (
-                    <Chip
-                      key={v}
-                      label={v}
-                      selected={lab === v}
-                      onClick={() => {
-                        setLab((cur) => (cur === v ? null : v));
-                        setPage(1);
-                      }}
-                    />
-                  ))}
-                </div>
-              </FilterCell>
-              <FilterCell label="과제 유형">
-                <div className="flex flex-wrap gap-1.5">
-                  {GRANT_TYPES.map((t) => (
-                    <Chip
-                      key={t}
-                      label={t}
-                      selected={grantType === t}
-                      onClick={() => {
-                        setGrantType(t);
-                        setPage(1);
-                      }}
-                    />
-                  ))}
-                </div>
-              </FilterCell>
-            </div>
-          </div>
-        </div>
+        <SearchFilters state={state} update={update} toggleIn={toggleIn} />
 
         {/* result bar */}
-        <div className="mt-[35px] flex items-center justify-between gap-4 px-1 max-md:mt-6 max-md:flex-col max-md:items-stretch">
+        <div className="mt-[56px] flex items-center justify-between gap-4 px-1 max-md:mt-6 max-md:flex-col max-md:items-stretch">
           <div className="flex items-center gap-[5px] font-bold text-ink-light">
             <span>총</span>
             <span className="text-brand">{results.length.toLocaleString()}</span>
@@ -287,43 +272,30 @@ export default function GovGrantSearchPage() {
           <div className="flex items-center gap-3 max-md:justify-between">
             <button
               type="button"
-              onClick={() => {
-                setOngoing((v) => !v);
-                setPage(1);
-              }}
+              onClick={() => update({ ongoing: !state.ongoing })}
               className={cn(
                 "group flex items-center gap-[5px] rounded-[5px] px-3 py-[7px] text-sm font-bold whitespace-nowrap transition-colors",
-                ongoing ? "text-brand hover:opacity-50" : "text-gray-soft hover:text-brand-3",
+                state.ongoing ? "text-brand hover:opacity-50" : "text-gray-soft hover:text-brand-3",
               )}
             >
               <span
                 className={cn(
                   "size-1.5 shrink-0 rounded-full transition-colors",
-                  ongoing ? "bg-brand" : "bg-gray-soft group-hover:bg-brand-3",
+                  state.ongoing ? "bg-brand" : "bg-gray-soft group-hover:bg-brand-3",
                 )}
               />
               진행 중인 공고만 보기
             </button>
-            <MobileSortSelect
-              value={sort}
-              options={SEARCH_SORTS}
-              onChange={(i) => {
-                setSort(i);
-                setPage(1);
-              }}
-            />
+            <MobileSortSelect value={state.sort} options={SEARCH_SORTS} onChange={(i) => update({ sort: i })} />
             <div className="flex shrink-0 items-center gap-1 rounded-[5px] bg-panel px-[7px] py-1.5 max-md:hidden">
               {SEARCH_SORTS.map((s, i) => (
                 <button
                   key={s}
                   type="button"
-                  onClick={() => {
-                    setSort(i);
-                    setPage(1);
-                  }}
+                  onClick={() => update({ sort: i })}
                   className={cn(
                     "rounded-[4px] px-4 py-2 text-sm font-bold whitespace-nowrap transition-colors",
-                    i === sort ? "bg-white text-ink" : "text-gray-soft hover:text-ink-light",
+                    i === state.sort ? "bg-white text-ink" : "text-gray-soft hover:text-ink-light",
                   )}
                 >
                   {s}
@@ -334,7 +306,7 @@ export default function GovGrantSearchPage() {
         </div>
 
         {/* results */}
-        <div className="mt-4 flex flex-col gap-6">
+        <div className="mt-5 flex flex-col gap-6">
           {visible.map((g) => (
             <GrantSearchCard key={g.id} grant={g} />
           ))}
@@ -347,9 +319,121 @@ export default function GovGrantSearchPage() {
         </div>
 
         <div className="mt-2">
-          <Pagination page={page} pageCount={pageCount} onChange={setPage} />
+          <Pagination page={page} pageCount={pageCount} onChange={(p) => update({ page: p })} />
         </div>
       </div>
     </AppShell>
+  );
+}
+
+function SearchFilters({
+  state,
+  update,
+  toggleIn,
+}: {
+  state: SearchState;
+  update: (patch: Partial<SearchState>) => void;
+  toggleIn: (list: string[], v: string) => string[];
+}) {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  return (
+    <div className="mt-[55px] flex flex-col gap-4 max-md:mt-6">
+      <div className="flex items-center justify-between gap-3">
+        <span className="font-bold text-ink">요건 / 필터</span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() =>
+              update({ orgs: [], regions: [], rev: "", yrs: "", lab: null, type: "전체" })
+            }
+            className="flex items-center gap-1 rounded-[5px] border-[1.5px] border-line bg-panel px-2.5 py-[5px] text-sm font-bold text-ink-light transition-colors hover:text-ink-muted"
+          >
+            <RotateCw className="size-4" />
+            초기화
+          </button>
+          <button
+            type="button"
+            aria-expanded={mobileOpen}
+            onClick={() => setMobileOpen((v) => !v)}
+            className="hidden items-center gap-1 rounded-[5px] border-[1.5px] border-line bg-white px-2.5 py-[5px] text-sm font-bold text-ink-light transition-colors max-md:flex"
+          >
+            {mobileOpen ? "필터 접기" : "필터 펼치기"}
+            <ChevronDown className={cn("size-3 transition-transform", mobileOpen && "rotate-180")} />
+          </button>
+        </div>
+      </div>
+
+      <div
+        className={cn(
+          "grid overflow-hidden rounded-[20px] border-[1.5px] border-line bg-line transition-all duration-200 ease-out md:grid-cols-3 md:gap-[1.5px] max-md:rounded-[16px]",
+          !mobileOpen && "max-md:grid-rows-[0fr] max-md:-translate-y-1 max-md:border-0 max-md:opacity-0",
+        )}
+      >
+        <div className="grid min-h-0 grid-cols-1 gap-[1.5px] overflow-hidden md:contents">
+          <FilterCell label="기관 유형">
+            <div className="flex flex-wrap gap-1.5">
+              {ORG_TYPES.map((o) => (
+                <Chip
+                  key={o}
+                  label={o}
+                  selected={state.orgs.includes(o)}
+                  onClick={() => update({ orgs: toggleIn(state.orgs, o) })}
+                />
+              ))}
+            </div>
+          </FilterCell>
+          <FilterCell label="내 매출액">
+            <NumberField placeholder="매출액 입력" suffix="억원" value={state.rev} onChange={(rev) => update({ rev })} />
+          </FilterCell>
+          <FilterCell label="내 사업연수">
+            <NumberField placeholder="사업 연수 입력" suffix="년" value={state.yrs} onChange={(yrs) => update({ yrs })} />
+          </FilterCell>
+          <FilterCell label="기관 소재지">
+            <div className="flex flex-wrap gap-1.5">
+              {REGIONS.map((r) => (
+                <Chip
+                  key={r}
+                  label={r}
+                  selected={state.regions.includes(r)}
+                  onClick={() => update({ regions: toggleIn(state.regions, r) })}
+                />
+              ))}
+            </div>
+          </FilterCell>
+          <FilterCell label="부설연구소/연구전담부서 유무">
+            <div className="flex flex-wrap gap-1.5">
+              {(["예", "아니오"] as const).map((v) => (
+                <Chip
+                  key={v}
+                  label={v}
+                  selected={state.lab === v}
+                  onClick={() => update({ lab: state.lab === v ? null : v })}
+                />
+              ))}
+            </div>
+          </FilterCell>
+          <FilterCell label="과제 유형">
+            <div className="flex flex-wrap gap-1.5">
+              {GRANT_TYPES.map((t) => (
+                <Chip
+                  key={t}
+                  label={t}
+                  selected={state.type === t}
+                  onClick={() => update({ type: t })}
+                />
+              ))}
+            </div>
+          </FilterCell>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function GovGrantSearchPage() {
+  return (
+    <Suspense fallback={null}>
+      <SearchPageInner />
+    </Suspense>
   );
 }
